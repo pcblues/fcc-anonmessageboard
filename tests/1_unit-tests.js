@@ -10,5 +10,13 @@ var chai = require('chai');
 var assert = chai.assert;
 
 suite('Unit Tests', function(){
-
+/*
+test('Whole number input', function(done) {
+      var input = '32L';
+      assert.equal(convertHandler.getNum(input),32);
+      done();
+    });
+    */
+  
+  
 });
