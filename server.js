@@ -13,12 +13,13 @@ var app = express();
 app.enable('trust proxy')
 
 // header protection
+
 var helmet = require('helmet')
 app.use(helmet())
-
 app.use(helmet.frameguard({ action: 'sameorigin' }))
 app.use(helmet.dnsPrefetchControl())
 app.use(helmet.referrerPolicy({ policy: 'same-origin' }))
+
 
 /*
 app.use(helmet.contentSecurityPolicy({
