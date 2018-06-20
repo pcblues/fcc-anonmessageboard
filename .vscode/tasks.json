@@ -1,0 +1,9 @@
+{
+    "version": "2.0.0",
+    "tasks": [{
+        "label": "foreman",
+        "command": "nf run npm start", // Could be any other shell command
+        //"args": ["test"],
+        "type": "shell"
+    }]
+}
