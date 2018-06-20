@@ -7,6 +7,10 @@ var collReply = 'reply'
 var mongo=require('mongodb').MongoClient
 var {ObjectId} = require('mongodb')
 
+var log=function(msg){
+  console.log(msg)
+}
+
 
 var populateNewThread=function(board) {
     var newRec ={}
@@ -16,8 +20,6 @@ var populateNewThread=function(board) {
     newRec.bumped_on=newRec.created_on
     newRec.reported=false
     newRec.delete_password=''
-    newRec.thread_id=''
-    newRec.replies = []
     return newRec
 }
 
@@ -32,55 +34,94 @@ var populateNewReply=function(board,thread_id) {
   return newRec
 }
 
+exports.gett=function(req,res){
+  log('gett')
+  var board = req.params.board
+  var dbo
+  mongo.connect(url).then(
+    function(db){
+      log('db')
+      dbo=db.db(dbName)
+      dbo.collection(collThread).find( {board:board})
+      
+      })
+          //,{fields:{reported:false,delete_password:false}} )
+        //.sort({bumped : -1}).limit(10).toArray()})
+      .then(function(threads){
+      // get top 3 replies
+      log(threads)
+      var doReplies = Promise.resolve()
+      for (var thread of threads) {
+        log('thread:'+thread._id)
+        doReplies=doReplies.then(function(replyArray)
+            {return dbo.collection(collReply)
+              .find( {board:board,thread_id:thread._id},
+              {fields:{reported:false,delete_password:false}} )
+              .sort({created_on : -1}).limit(3).toArray()})
+        .then(function(replyArray){
+          thread.replies=replyArray
+        })
+      } 
+    })
+    .then(function(results) {
+    res.send(results)
+  })
+  .catch(function(err) {
+    log(err)
+  })
+}
 
-    exports.gett=function (req, res){
-      // list recent threads
-      var board = req.params.board
-      var threads={}
-      mongo.connect(url)
-        .then(function(db) {
-        db.collection(collThread).find( {board:board} ).sort({bumped : -1}).limit(10) .then(function(boardRec) {
-          console.log(boardRec)
-          // return 10 recent bumped threads each with 3 recent replies 
-          threads=boardRec
-          for (var thread of threads){
-            db.collection(collReply).find( {board:board,thread_id:thread._id} ).sort({created_on : -1}).limit(3)
-            .then(function(replies){
-              thread.replies=replies
-            },function (err) {console.log(err)})                   
-          }
-        },function (err) {console.log(err)})
-        .then(function(result){
-          res.send(result)}
-        ,function (err) {console.log(err)})
-        },function (err) {console.log(err)})
-    }
-    
-    
     exports.postt=function (req, res){
       // create thread
+      log('postt')
       var board = req.params.board
+      var dbo
       mongo.connect(url)
         .then(function(db) {
+        log('got db')
+        dbo=db.db(dbName)
         var newThread = populateNewThread(board)
         newThread.text = req.body.text
         newThread.delete_password = req.body.delete_password
-        db.collection(collThread).insert(newThread)
-          .then(function(boardRec) {             
+        dbo.collection(collThread).insert(newThread)
+        .then(function() {             
           var path = '/b/'+board
           res.redirect(path)
-        },function(err){console.log(err)} )
-      },function(err){console.log(err)})
+        })
+      }).catch(function(err){console.log(err)})
     }
+    
     
     exports.putt=function (req, res){
       // report thread
+      log('putt')
       var board = req.params.board
+      var thread_id = req.thread_id
+      var dbo
+      mongo.connect(url).then(function(db) {
+        dbo=db.db(dbName)
+        return db.collection(collThread).findOne({_id:thread_id})})
+      .then(function(){
+        dbo.collection(collThread).update({_id:_id},thread)
+          .then(function(count) {             
+          res.send('success')
+        })
+      })  
+      .catch(function (err) {console.log(err)})      
+    }
+    
+    exports.deletet=function (req, res){
+      log('deletet')
+      // delete thread with password
+      var board = req.params.board
+      var dbo
       mongo.connect(url).then(function(db) {
         var newThread = populateNewThread(board)
         newThread.text = req.body.text
         newThread.delete_password = req.body.delete_password
-        db.collection(collThread).update({_id:req.body._id},newThread).then(function(count) {             
+        dbo = db.db(dbName)
+        dbo.collection(collThread).update({_id:req.body._id},newThread)
+          .then(function(count) {             
           var path = '/b/'+board
           res.redirect(path)
         }).catch(function (err) {
@@ -91,28 +132,103 @@ var populateNewReply=function(board,thread_id) {
       
     }
     
-    exports.deletet=function (req, res){
-      // delete thread with password
-    }
-    
     exports.getr=function (req, res){
+      log('getr')
       // show all replies on thread
       var board = req.params.board
+      var dbo
+      mongo.connect(url).then(function(db) {
+        var newThread = populateNewThread(board)
+        newThread.text = req.body.text
+        newThread.delete_password = req.body.delete_password
+        dbo = db.db(dbName)
+        dbo.collection(collThread).update({_id:req.body._id},newThread)
+          .then(function(count) {             
+          var path = '/b/'+board
+          res.redirect(path)
+        }).catch(function (err) {
+          //failure callback
+          console.log(err)
+        });  
+      }).catch(function (err) {console.log(err)})      
     }
     
     exports.postr=function (req, res){
-      // create replay on thread
+      log('postr')
+      // create reply on thread
       var board = req.params.board
+      var thread_id = req.params.thread_id
+      var dbo
+      // get thread first
+      // bump thread
+      // add array
+      mongo.connect(url).then(function(db) {
+        dbo=db.db(dbName)
+        return dbo.collection(collThread).findOne( {board:board,_id:thread_id} )
+      })
+      .then(function(thread){
+        var newReply = populateNewReply(thread.board,thread._id)
+        newReply.text = req.body.text
+        newReply.delete_password = req.body.delete_password
+        dbo.collection(collReply).insert(newReply)
+          .then(function() {             
+          res.send('message')
+        })
+      }).catch(function (err) {console.log(err)})      
     }
     
     exports.putr=function (req, res){
+      log('putr')
       // report reply on thread
       var board = req.params.board
+      var thread_id=req.params.thread_id
+      var reply_id = req.params.reply_id
+      var password=req.params.delete_password
+      var dbo
+      mongo.connect(url).then(function(db) {
+        dbo = db.db(dbName)
+        dbo.collection(collReply).findOne({board:board,thread_id:thread_id})
+          .then(function(reply) {
+          if (reply) {
+            reply.reported=true
+            dbo.collection(collReply).update({_id:reply._id},reply)
+              .then(function(count) {             
+            res.send('success')
+            })
+          } else {
+            res.send('incorrect password')
+          }
+        }).catch(function (err) {
+          //failure callback
+          console.log(err)
+          res.send('failure')
+        });  
+      }).catch(function (err) {console.log(err)})      
     }
     
     exports.deleter=function (req, res){
+      log('deleter')
       // change reply to '[deleted]' on thread
       var board = req.params.board
+      var thread_id=req.params.thread_id
+      var reply_id = req.params.reply_id
+      var password=req.params.delete_password
+      var dbo
+      mongo.connect(url).then(function(db) {
+        dbo = db.db(dbName)
+        dbo.collection(collReply).findOne({board:board,thread_id:thread_id})
+          .then(function(reply) {
+          if (reply) {
+            reply.text='[deleted]'
+            dbo.collection(collReply).update({_id:reply._id},reply)
+              .then(function(count) {             
+            res.send('success')
+            })
+          } else {
+            res.send('incorrect password')
+          }
+        })
+      }).catch(function (err) {console.log(err)})      
     }
     
 /*

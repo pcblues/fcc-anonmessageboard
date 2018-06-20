@@ -30,7 +30,7 @@ suite('Functional Tests', function() {
   suite('API ROUTING FOR /api/threads/:board', function() {
     
     suite('POST', function() {
-      test('Test 1',function(done) {
+      test('Test TP1',function(done) {
         
         chai.request(server)
           .post('/api/threads/:board')
@@ -42,44 +42,88 @@ suite('Functional Tests', function() {
           status_text: 'In QA'
           })
           .end(function(err,res)  {
+          assert.isNotNull(res.issue_title)
+          assert.isNotNull(res.text)
+          assert.isNotNull(res.delete_password)
+          assert.isNotNull(res._id)
+          assert.isNotNull(res.replies)
+          assert.isNotNull(res.bumped_on)
+          assert.isNotNull(res.created_on)
             done()
           })
-      })
-    });
+      })})
+    
     
     suite('GET', function() {
-      done();
-    });
+    test('Test TG1',function(done) {
+      chai.request(server)
+      .get('api/threads/:board')
+      .end(function(err,res) {
+        
+        done()
+      }
+      
+    )})})
     
     suite('DELETE', function() {
-       done();     
-    });
+      test('Test TD1',function(done) {
+      chai.request(server)
+      .delete('api/threads/:board')
+      .end(function(err,res) {
+        done()
+      }
+    
+    )})})
     
     suite('PUT', function() {
-      done();
-    });
-    
-
-  });
+      test('Test TU1',function(done) {
+       chai.request(server)
+      .put('api/threads/:board')
+      .end(function(err,res) {
+        done()
+      }
+    )
+  })})})
   
   suite('API ROUTING FOR /api/replies/:board', function() {
     
     suite('POST', function() {
-      done()
-    });
+      test('Test RP1',function(done) {
+       chai.request(server)
+      .post('api/replies/:board')
+      .end(function(err,res) {
+        done()
+      }
+    )})})
     
     suite('GET', function() {
-      done()
-    });
+      test('Test RG1',function(done) {
+       chai.request(server)
+      .get('api/replies/:board')
+      .end(function(err,res) {
+        done()
+      }
+    )})})
     
     suite('PUT', function() {
-      done()
-    });
+      test('Test RU1',function(done) {
+       chai.request(server)
+      .get('api/replies/:board')
+      .end(function(err,res) {
+        done()
+      }
+    )})})
     
     suite('DELETE', function() {
-      done()
-    });
-    
-  });
+      test('Test RD1',function(done) {
+       chai.request(server)
+      .delete('api/replies/:board')
+      .end(function(err,res) {
+        done()
+      }
+    )})})
+  
+  })
+})
 
-});
+
