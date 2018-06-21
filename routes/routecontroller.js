@@ -36,6 +36,9 @@ var populateNewReply=function(board,thread_id) {
 
 exports.gett=function(req,res){
   log('gett')
+  //var testSend=[]
+  //testSend.push(populateNewThread('general'))
+  
   var board = req.params.board
   var dbo
   mongo.connect(url).then(
@@ -65,12 +68,16 @@ exports.gett=function(req,res){
       } 
       Promise.all(promises)
       .then(function() {
-      res.send(threads)
+
+      log('sending threads')
+      res.setHeader('Content-Type', 'application/json');
+      res.send(JSON.stringify(threads))
     })
       })
   .catch(function(err) {
     log(err)
   })
+  
 }
 
     exports.postt=function (req, res){
