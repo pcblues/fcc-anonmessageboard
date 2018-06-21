@@ -37,8 +37,6 @@ var populateNewReply=function(board,thread_id) {
 
 exports.gett=function(req,res){
   log('gett')
-  //var testSend=[]
-  //testSend.push(populateNewThread('general'))
   
   var board = req.params.board
   var dbo
@@ -49,10 +47,7 @@ exports.gett=function(req,res){
       return dbo.collection(collThread).find( {board:board},
         {fields:{reported:false,delete_password:false}}).sort({bumped : -1}).limit(10).toArray()
       })
-          //,{fields:{reported:false,delete_password:false}} )
-        //.sort({bumped : -1}).limit(10).toArray()})
       .then(function(threads){
-      // get top 3 replies
       log(threads)
       var promises = []
       
@@ -149,22 +144,33 @@ exports.gett=function(req,res){
       log('getr')
       // show all replies on thread
       var board = req.params.board
+      var thread_id = req.params.thread_id
       var dbo
-      mongo.connect(url).then(function(db) {
-        var newThread = populateNewThread(board)
-        newThread.text = req.body.text
-        newThread.delete_password = req.body.delete_password
-        dbo = db.db(dbName)
-        dbo.collection(collThread).update({_id:req.body._id},newThread)
-          .then(function(count) {             
-          var path = getBoardPath(board)
-          res.redirect(path)
-        }).catch(function (err) {
-          //failure callback
-          console.log(err)
-        });  
-      }).catch(function (err) {console.log(err)})      
-    }
+      mongo.connect(url).then(
+        function(db){
+          log('db')
+          dbo=db.db(dbName)
+          return dbo.collection(collThread).findOne( {board:board,_id:thread_id},
+            {fields:{reported:false,delete_password:false}})
+          .then(function(thread){
+          log(threads)
+          return dbo.collection(collReply)
+          .find( {board:board,thread_id:thread._id},
+          {fields:{reported:false,delete_password:false}} )
+          .sort({created_on : -1})})
+          .then(function(replyArray){
+            thread.replies=replyArray
+          })
+          .then(function() {
+            log('sending threads')
+            res.setHeader('Content-Type', 'application/json');
+            res.send(threads)
+          })
+        })
+      .catch(function(err) {
+        log(err)
+      })
+        }
     
     exports.postr=function (req, res){
       log('postr')
