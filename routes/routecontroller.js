@@ -20,6 +20,7 @@ var populateNewThread=function(board) {
     newRec.bumped_on=newRec.created_on
     newRec.reported=false
     newRec.delete_password=''
+    newRec.replies=[]
     return newRec
 }
 
@@ -68,10 +69,10 @@ exports.gett=function(req,res){
       } 
       Promise.all(promises)
       .then(function() {
-
       log('sending threads')
       res.setHeader('Content-Type', 'application/json');
-      res.send(JSON.stringify(threads))
+      res.send(threads)
+        
     })
       })
   .catch(function(err) {
