@@ -5,6 +5,7 @@
             "label": "foreman",
             "command": "nf run npm start",
             "type": "shell",
+            "isBackground": true,
             "group": {
                 "kind": "build",
                 "isDefault": true
