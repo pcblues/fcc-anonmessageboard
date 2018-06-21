@@ -1,9 +1,14 @@
 {
     "version": "2.0.0",
-    "tasks": [{
-        "label": "foreman",
-        "command": "nf run npm start", // Could be any other shell command
-        //"args": ["test"],
-        "type": "shell"
-    }]
+    "tasks": [
+        {
+            "label": "foreman",
+            "command": "nf run npm start",
+            "type": "shell",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
 }

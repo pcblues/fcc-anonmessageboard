@@ -42,7 +42,7 @@ exports.gett=function(req,res){
     function(db){
       log('db')
       dbo=db.db(dbName)
-      dbo.collection(collThread).find( {board:board})
+      return dbo.collection(collThread).find( {board:board}).toArray()
       
       })
           //,{fields:{reported:false,delete_password:false}} )
