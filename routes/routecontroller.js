@@ -144,27 +144,28 @@ exports.gett=function(req,res){
       log('getr')
       // show all replies on thread
       var board = req.params.board
-      var thread_id = req.params.thread_id
+      var thread_id = req.query.thread_id
       var dbo
+      var myThread
       mongo.connect(url).then(
         function(db){
           log('db')
           dbo=db.db(dbName)
-          return dbo.collection(collThread).findOne( {board:board,_id:thread_id},
+          return dbo.collection(collThread).findOne( {board:board,_id:ObjectId(thread_id)},
             {fields:{reported:false,delete_password:false}})
           .then(function(thread){
-          log(threads)
+          myThread=thread
           return dbo.collection(collReply)
           .find( {board:board,thread_id:thread._id},
           {fields:{reported:false,delete_password:false}} )
-          .sort({created_on : -1})})
+          .sort({created_on : -1}).toArray()})
           .then(function(replyArray){
-            thread.replies=replyArray
+            myThread.replies=replyArray
           })
           .then(function() {
             log('sending threads')
-            res.setHeader('Content-Type', 'application/json');
-            res.send(threads)
+            res.setHeader('Content-Type', 'application/json')
+            res.send(myThread)
           })
         })
       .catch(function(err) {
@@ -176,7 +177,7 @@ exports.gett=function(req,res){
       log('postr')
       // create reply on thread
       var board = req.params.board
-      var thread_id = req.params.thread_id
+      var thread_id = req.query.thread_id
       var dbo
       // get thread first
       // bump thread
@@ -200,8 +201,8 @@ exports.gett=function(req,res){
       log('putr')
       // report reply on thread
       var board = req.params.board
-      var thread_id=req.params.thread_id
-      var reply_id = req.params.reply_id
+      var thread_id=req.query.thread_id
+      var reply_id = req.query.reply_id
       var password=req.params.delete_password
       var dbo
       mongo.connect(url).then(function(db) {
