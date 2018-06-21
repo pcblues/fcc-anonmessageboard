@@ -68,10 +68,10 @@ exports.gett=function(req,res){
       } 
       Promise.all(promises)
       .then(function() {
+
       log('sending threads')
       res.setHeader('Content-Type', 'application/json');
       res.send(JSON.stringify(threads))
-        
     })
       })
   .catch(function(err) {
