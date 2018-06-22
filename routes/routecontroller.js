@@ -21,6 +21,7 @@ var populateNewThread=function(board) {
     newRec.reported=false
     newRec.delete_password=''
     newRec.replies=[]
+    newRec.replycount=0
     return newRec
 }
 
@@ -40,7 +41,6 @@ exports.gett=function(req,res){
   var board = req.params.board
   var dbo
   var myThreads
-  var myThread
   mongo.connect(url).then(
     function(db){
       log('db')
@@ -49,25 +49,41 @@ exports.gett=function(req,res){
         {fields:{reported:false,delete_password:false}}).sort({bumped : -1}).limit(10).toArray()
       })
       .then(function(threads){
-        log(threads)
+
         myThreads = threads
-        // test with 1 thread
-        var thread = threads[0]
-        myThread = thread
-        return dbo.collection(collReply)
-        .find( {board:board,thread_id:ObjectId(thread._id)},
-        {fields:{reported:false,delete_password:false}} )
-        .sort({created_on : -1}).limit(3).toArray()
-      .then(function(replyArray) {
-        myThread.replies=replyArray
-        Promise.resolve()
-      }).then(function(){ 
-        log('sending threads')
-        res.setHeader('Content-Type', 'application/json');
-        res.send(myThreads)
+        
+        function addReplies(thread) {
+          var myThread = thread
+          return new Promise(function(resolve){
+            dbo.collection(collReply)
+             .find( {board:board,thread_id:ObjectId(thread._id)},
+            {fields:{reported:false,delete_password:false}} ).sort({create_on:-1}).toArray()
+            .then(function(allReplies){
+              myThread.replycount = allReplies.length 
+              myThread.replies=allReplies.slice(0,3)
+              resolve(thread)
+            })
+              
+          })
+        }
+
+        function processThreads(threads) {
+          return threads.reduce(function(promise,thread){
+            return promise.then(function(){
+              return addReplies(thread)
+            }).catch(function(err){console.log(err)})
+          },Promise.resolve())
+        }
+
+        
+        processThreads(threads)
+        .then(function(){ 
+          log('sending threads')
+          res.setHeader('Content-Type', 'application/json');
+          res.send(myThreads)
+        })
       })
-      })
-    
+
       /*
       var promises = []
       
