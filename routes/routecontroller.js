@@ -53,14 +53,18 @@ exports.gett=function(req,res){
       
       for (var thread of threads) {
         log('thread:'+thread._id)
-        promises.push(function(thread){return dbo.collection(collReply)
-              .find( {board:board,thread_id:thread._id},
+        promises.push(function(thread){
+          return new Promise(function(resolve,reject) {
+              dbo.collection(collReply)
+              .find( {board:board,thread_id:ObjectId(thread._id)},
               {fields:{reported:false,delete_password:false}} )
               .sort({created_on : -1}).limit(3).toArray()
-        .then(function(replyArray){
-          thread.replies=replyArray
-        }
-        )})
+              .then(function(replyArray){
+              thread.replies=replyArray
+              resolve()
+              })
+          })
+        })
       } 
       Promise.all(promises)
       .then(function() {
@@ -173,28 +177,38 @@ exports.gett=function(req,res){
       })
         }
     
+    function getThreadPath(board,thread_id){
+          return '/b/'+board+'/'+thread_id+'/'
+        }
+
     exports.postr=function (req, res){
       log('postr')
       // create reply on thread
       var board = req.params.board
-      var thread_id = req.query.thread_id
+      var thread_id = req.body.thread_id
       var dbo
-      // get thread first
-      // bump thread
-      // add array
-      mongo.connect(url).then(function(db) {
+      var myThread
+      mongo.connect(url)
+      .then(function(db) {
         dbo=db.db(dbName)
-        return dbo.collection(collThread).findOne( {board:board,_id:thread_id} )
+        return dbo.collection(collThread).findOne( {_id:ObjectId(thread_id)} )
       })
-      .then(function(thread){
+      .then(function(thread) {
+        myThread=thread
         var newReply = populateNewReply(thread.board,thread._id)
         newReply.text = req.body.text
         newReply.delete_password = req.body.delete_password
-        dbo.collection(collReply).insert(newReply)
-          .then(function() {             
-          res.send('message')
-        })
-      }).catch(function (err) {console.log(err)})      
+        return dbo.collection(collReply).insert(newReply)
+      }).then(function(reply){
+        myThread.bumped_on=reply.created_on
+        return dbo.collection(collThread).update({_id:myThread._id},myThread)
+      })
+      .then(function() {             
+          res.redirect(getThreadPath(board,thread_id))
+      }).catch(function (err) {
+        console.log(err)
+        res.send('Error creating reply: '+err)
+      })      
     }
     
     exports.putr=function (req, res){
