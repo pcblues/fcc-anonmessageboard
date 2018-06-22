@@ -36,10 +36,11 @@ var populateNewReply=function(board,thread_id) {
 }
 
 exports.gett=function(req,res){
-  log('gett')
-  
+  log('gett') 
   var board = req.params.board
   var dbo
+  var myThreads
+  var myThread
   mongo.connect(url).then(
     function(db){
       log('db')
@@ -48,7 +49,26 @@ exports.gett=function(req,res){
         {fields:{reported:false,delete_password:false}}).sort({bumped : -1}).limit(10).toArray()
       })
       .then(function(threads){
-      log(threads)
+        log(threads)
+        myThreads = threads
+        // test with 1 thread
+        var thread = threads[0]
+        myThread = thread
+        return dbo.collection(collReply)
+        .find( {board:board,thread_id:ObjectId(thread._id)},
+        {fields:{reported:false,delete_password:false}} )
+        .sort({created_on : -1}).limit(3).toArray()
+      .then(function(replyArray) {
+        myThread.replies=replyArray
+        Promise.resolve()
+      }).then(function(){ 
+        log('sending threads')
+        res.setHeader('Content-Type', 'application/json');
+        res.send(myThreads)
+      })
+      })
+    
+      /*
       var promises = []
       
       for (var thread of threads) {
@@ -67,13 +87,14 @@ exports.gett=function(req,res){
         })
       } 
       Promise.all(promises)
+      
       .then(function() {
       log('sending threads')
       res.setHeader('Content-Type', 'application/json');
       res.send(threads)
         
-    })
-      })
+    })*/
+      
   .catch(function(err) {
     log(err)
   })
@@ -175,7 +196,7 @@ exports.gett=function(req,res){
       .catch(function(err) {
         log(err)
       })
-        }
+     }
     
     function getThreadPath(board,thread_id){
           return '/b/'+board+'/'+thread_id+'/'
