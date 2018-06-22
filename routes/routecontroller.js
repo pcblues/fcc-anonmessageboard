@@ -221,23 +221,20 @@ exports.gett=function(req,res){
     exports.putr=function (req, res){
       log('putr')
       // report reply on thread
-      var board = req.params.board
-      var thread_id=req.query.thread_id
-      var reply_id = req.query.reply_id
-      var password=req.params.delete_password
+      var reply_id = req.body.reply_id
       var dbo
       mongo.connect(url).then(function(db) {
         dbo = db.db(dbName)
-        dbo.collection(collReply).findOne({board:board,thread_id:thread_id})
+        dbo.collection(collReply).findOne({_id:ObjectId(reply_id)})
           .then(function(reply) {
           if (reply) {
             reply.reported=true
             dbo.collection(collReply).update({_id:reply._id},reply)
-              .then(function(count) {             
+              .then(function() {             
             res.send('success')
             })
           } else {
-            res.send('incorrect password')
+            res.send('reply does not exist')
           }
         }).catch(function (err) {
           //failure callback
@@ -250,21 +247,23 @@ exports.gett=function(req,res){
     exports.deleter=function (req, res){
       log('deleter')
       // change reply to '[deleted]' on thread
-      var board = req.params.board
-      var thread_id=req.params.thread_id
-      var reply_id = req.params.reply_id
-      var password=req.params.delete_password
+      var reply_id = req.body.reply_id
+      var password=req.body.delete_password
       var dbo
       mongo.connect(url).then(function(db) {
         dbo = db.db(dbName)
-        dbo.collection(collReply).findOne({board:board,thread_id:thread_id})
+        dbo.collection(collReply).findOne({_id:ObjectId(reply_id)})
           .then(function(reply) {
           if (reply) {
-            reply.text='[deleted]'
-            dbo.collection(collReply).update({_id:reply._id},reply)
+            if (reply.delete_password==password) {
+              reply.text='[deleted]'
+              dbo.collection(collReply).update({_id:reply._id},reply)
               .then(function(count) {             
-            res.send('success')
-            })
+                res.send('success')})
+              }
+            else {
+              res.send('incorrect password')
+            }
           } else {
             res.send('incorrect password')
           }
