@@ -33,22 +33,14 @@ suite('Functional Tests', function() {
       test('Test TP1',function(done) {
         
         chai.request(server)
-          .post('/api/threads/:board')
+          .post('/api/threads/test')
          .send({
-          issue_title: 'Title',
-          issue_text: 'text', 
-          created_by: 'Functional Test - Every field filled in',
-          assigned_to: 'Chai and Mocha',
-          status_text: 'In QA'
+          text: 'text', 
+          delete_password: 'delete_password'
           })
           .end(function(err,res)  {
-          assert.isNotNull(res.issue_title)
-          assert.isNotNull(res.text)
-          assert.isNotNull(res.delete_password)
-          assert.isNotNull(res._id)
-          assert.isNotNull(res.replies)
-          assert.isNotNull(res.bumped_on)
-          assert.isNotNull(res.created_on)
+          // check return url is /b/test/
+          // check thread exists with text timestamp
             done()
           })
       })})
@@ -59,6 +51,9 @@ suite('Functional Tests', function() {
       chai.request(server)
       .get('api/threads/:board')
       .end(function(err,res) {
+        // check 10 most recently bumped threads returned 
+        // check 3 most recent bumped threads returned
+        // check appropriate fields hidden
         
         done()
       }
@@ -70,6 +65,7 @@ suite('Functional Tests', function() {
       chai.request(server)
       .delete('api/threads/:board')
       .end(function(err,res) {
+        // check text of thread is deleted
         done()
       }
     
@@ -80,6 +76,7 @@ suite('Functional Tests', function() {
        chai.request(server)
       .put('api/threads/:board')
       .end(function(err,res) {
+        // check report of thread is true
         done()
       }
     )
@@ -92,6 +89,8 @@ suite('Functional Tests', function() {
        chai.request(server)
       .post('api/replies/:board')
       .end(function(err,res) {
+        // check thread bumped
+        // check all reply fields saved
         done()
       }
     )})})
@@ -101,6 +100,8 @@ suite('Functional Tests', function() {
        chai.request(server)
       .get('api/replies/:board')
       .end(function(err,res) {
+        // check all replies returned
+        // check fields hidden
         done()
       }
     )})})
@@ -110,7 +111,9 @@ suite('Functional Tests', function() {
        chai.request(server)
       .get('api/replies/:board')
       .end(function(err,res) {
+        // check reply is reported
         done()
+        
       }
     )})})
     
@@ -119,6 +122,7 @@ suite('Functional Tests', function() {
        chai.request(server)
       .delete('api/replies/:board')
       .end(function(err,res) {
+        // check reply marked as deleted
         done()
       }
     )})})
