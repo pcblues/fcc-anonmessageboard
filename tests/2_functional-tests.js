@@ -13,6 +13,16 @@ var server = require('../server');
 
 chai.use(chaiHttp);
 
+// block'o'definitions
+var url = process.env.DB
+var dbName = 'fcc'
+var collThread = 'msg'
+var collReply = 'reply'
+var mongo=require('mongodb').MongoClient
+var {ObjectId} = require('mongodb')
+//////////////////////
+
+
 function createThread(boardName,threadText) {
 chai.request(server)
 .post('/api/threads/'+boardName)
@@ -40,31 +50,34 @@ function createReply(boardName,threadID,replyText) {
 
 }
 
-function getLatestThreadID(resolve) {
-  mongo.connect(url).then(
+// assume text unique for test purposes
+function getLatestThreadID(threadText) {
+  return new Promise(function (resolve,reject){
+    mongo.connect(url).then(
     function(db){
-      log('db')
       dbo=db.db(dbName)
-      return dbo.collection(collThread).findOne().sort({created_on:-1})
-      .then(function(thread){
-        resolve(thread._id)
+      dbo.collection(collThread).find({text:threadText}).sort({created_on:1}).limit(1).toArray()
+      .then(function(threads){
+        resolve(threads[0]._id)
       })
     }).catch(function(err){
-      log(err)
+      reject(err)
     })
+  })
 }
 
-function getLatestReplyID(resolve) {
-  mongo.connect(url).then(
-    function(db){
-      log('db')
-      dbo=db.db(dbName)
-      return dbo.collection(collReply).findOne().sort({created_on:-1})
-      .then(function(reply){
-        resolve(reply._id)
+function getLatestReplyID(replyText) {
+  return new Promise(function(resolve,resolve){
+    mongo.connect(url).then(
+      function(db){
+        dbo=db.db(dbName)
+        dbo.collection(collReply).find({text:replyText}).sort({created_on:1}).limit(1).toArray()
+        .then(function(replies){
+          resolve(replies[0]._id)
+        })
+      }).catch(function(err){
+        reject(err)
       })
-    }).catch(function(err){
-      log(err)
     })
   }
   
@@ -78,7 +91,7 @@ suite('Functional Tests', function() {
         var boardName = Date.toString()
         var threadText = Date.toString()
         createThread(boardName,threadText)
-        getLatestThreadID().then(
+        getLatestThreadID(threadText).then(
           function(threadID) {
             chai.request(server)
             .get('/api/replies/'+boardName+'/?thread_id='+threadID)
@@ -130,13 +143,13 @@ suite('Functional Tests', function() {
 
         // check 4th reply not in 1st thread
         chai.request(server)
-      .get('api/threads/:board')
-      .end(function(err,res) {
+        .get('api/threads/:board')
+        .end(function(err,res) {
         
         done()
       }
       
-    )})})
+    )})}) 
     
     suite('DELETE', function() {
       test('Test TD1',function(done) {
@@ -228,6 +241,6 @@ suite('Functional Tests', function() {
     )})})
   
   })
-})
+
 
 

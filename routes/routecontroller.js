@@ -1,11 +1,14 @@
 require('promise')
 
+// block'o'definitions
 var url = process.env.DB
 var dbName = 'fcc'
 var collThread = 'msg'
 var collReply = 'reply'
 var mongo=require('mongodb').MongoClient
 var {ObjectId} = require('mongodb')
+//////////////////////
+
 
 var log=function(msg){
   console.log(msg)
