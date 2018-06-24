@@ -13,47 +13,125 @@ var server = require('../server');
 
 chai.use(chaiHttp);
 
-suite('Functional Tests', function() {
-/*
-      test('1 stock', function(done) {
-       chai.request(server)
-        .get('/api/stock-prices?stock=goog')
-        .end(function(err, res){
-        var stockData =res.body
-           
-        console.log(stockData)  
-         assert.isDefined(stockData.stockData,'Object to have stockData element')
-          done()
-        })
+function createThread(boardName,threadText) {
+chai.request(server)
+.post('/api/threads/'+boardName)
+.send({
+text: threadText, 
+delete_password: threadText
+})
+.end(function(err,res)  {
+})
+// return latest new threadid
+
+}
+
+function createReply(boardName,threadID,replyText) {
+  chai.request(server)
+  .post('/api/replies/'+boardName)
+  .send({
+  text: replyText,
+  thread_id: threadID, 
+  delete_password: threadText
+  })
+  .end(function(err,res)  {
+  })
+// return latest new replyid
+
+}
+
+function getLatestThreadID(resolve) {
+  mongo.connect(url).then(
+    function(db){
+      log('db')
+      dbo=db.db(dbName)
+      return dbo.collection(collThread).findOne().sort({created_on:-1})
+      .then(function(thread){
+        resolve(thread._id)
       })
-*/
+    }).catch(function(err){
+      log(err)
+    })
+}
+
+function getLatestReplyID(resolve) {
+  mongo.connect(url).then(
+    function(db){
+      log('db')
+      dbo=db.db(dbName)
+      return dbo.collection(collReply).findOne().sort({created_on:-1})
+      .then(function(reply){
+        resolve(reply._id)
+      })
+    }).catch(function(err){
+      log(err)
+    })
+  }
+  
+
+
+suite('Functional Tests', function() {
   suite('API ROUTING FOR /api/threads/:board', function() {
     
     suite('POST', function() {
       test('Test TP1',function(done) {
-        
-        chai.request(server)
-          .post('/api/threads/test')
-         .send({
-          text: 'text', 
-          delete_password: 'delete_password'
+        var boardName = Date.toString()
+        var threadText = Date.toString()
+        createThread(boardName,threadText)
+        getLatestThreadID().then(
+          function(threadID) {
+            chai.request(server)
+            .get('/api/replies/'+boardName+'/?thread_id='+threadID)
+            .end(function(err,res) {
+              var thread = res.body
+              assert.equal(thread.text,threadText,'Text must match '+threadText)
+              done()
+            })
           })
-          .end(function(err,res)  {
-          // check return url is /b/test/
-          // check thread exists with text timestamp
-            done()
-          })
-      })})
-    
+        })
+      })
+    })
     
     suite('GET', function() {
     test('Test TG1',function(done) {
-      chai.request(server)
-      .get('api/threads/:board')
-      .end(function(err,res) {
+        // create 11 threads
+        // create 4 replies on each
+        var boardName = Date.toString()
+        var threads = []
+        for (var c=1;c<=11;c++) {
+          threads.push('TG'+c)
+        }
+        var replies = []
+        for (var c=1;c<=4;c++) {
+          replies.push('R'+c)
+        }
+        for (thread of threads) {
+          createThread(boardName,thread)
+          var threadID
+          getLatestThreadID(function(threadID){
+            for (reply of replies){
+              createReply(boardName,threadID,reply)
+            }
+            // rest of test here
+            
+          })
+
+        }
+
+
+
         // check 10 most recently bumped threads returned 
+
         // check 3 most recent bumped threads returned
         // check appropriate fields hidden
+        
+        
+        // check 11th thread not in res
+
+        // check 4th reply not in 1st thread
+        chai.request(server)
+      .get('api/threads/:board')
+      .end(function(err,res) {
         
         done()
       }
@@ -62,10 +140,14 @@ suite('Functional Tests', function() {
     
     suite('DELETE', function() {
       test('Test TD1',function(done) {
-      chai.request(server)
+        // create a thread on a new board
+        // load the board
+        // delete the first thread
+        // load the board
+        // check the text says [deleted]
+        chai.request(server)
       .delete('api/threads/:board')
       .end(function(err,res) {
-        // check text of thread is deleted
         done()
       }
     
@@ -73,10 +155,14 @@ suite('Functional Tests', function() {
     
     suite('PUT', function() {
       test('Test TU1',function(done) {
-       chai.request(server)
+        // create new board and thread
+        // load board
+        // report first thread
+        // check report of thread is true
+        chai.request(server)
       .put('api/threads/:board')
       .end(function(err,res) {
-        // check report of thread is true
+        
         done()
       }
     )
@@ -86,43 +172,57 @@ suite('Functional Tests', function() {
     
     suite('POST', function() {
       test('Test RP1',function(done) {
-       chai.request(server)
+        // create new board and thread
+        // create reply on thread
+        // check thread bumped        
+        chai.request(server)
       .post('api/replies/:board')
       .end(function(err,res) {
-        // check thread bumped
-        // check all reply fields saved
         done()
       }
     )})})
     
     suite('GET', function() {
       test('Test RG1',function(done) {
-       chai.request(server)
-      .get('api/replies/:board')
-      .end(function(err,res) {
+        // create new board and thread
+        // create new replies
+        // get thread and replies
         // check all replies returned
         // check fields hidden
+        chai.request(server)
+      .get('api/replies/:board')
+      .end(function(err,res) {
+        
         done()
       }
     )})})
     
     suite('PUT', function() {
       test('Test RU1',function(done) {
+        // create new board and thread
+        // create new reply
+        // report reply
+        // check reply for reported
        chai.request(server)
       .get('api/replies/:board')
       .end(function(err,res) {
-        // check reply is reported
+        
+      
         done()
         
       }
     )})})
     
     suite('DELETE', function() {
-      test('Test RD1',function(done) {
+        // check reply marked as deleted
+        // create new board and thread
+        // create new reply
+        // delete reply
+        // check deleted
+        test('Test RD1',function(done) {
        chai.request(server)
       .delete('api/replies/:board')
       .end(function(err,res) {
-        // check reply marked as deleted
         done()
       }
     )})})
