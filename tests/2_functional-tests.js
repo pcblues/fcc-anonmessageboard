@@ -56,8 +56,12 @@ function getLatestThreadID(threadText) {
       dbo=db.db(dbName)
       dbo.collection(collThread).find({text:threadText}).sort({created_on:1}).limit(1).toArray()
       .then(function(threads){
-        resolve(threads[0]._id)
-      })
+        if (threads) {
+           resolve(threads[0]._id)
+        } else {
+           reject('No threads')
+        }
+       })
     }).catch(function(err){
       reject(err)
     })
@@ -71,7 +75,12 @@ function getLatestReplyID(replyText) {
         dbo=db.db(dbName)
         dbo.collection(collReply).find({text:replyText}).sort({created_on:1}).limit(1).toArray()
         .then(function(replies){
-          resolve(replies[0]._id)
+          if (replies) {
+           resolve(replies[0]._id)
+        } else {
+           reject('No replies')
+        }
+        
         })
       }).catch(function(err){
         reject(err)
@@ -110,12 +119,10 @@ suite('Functional Tests', function() {
         for (var c=1;c<=11;c++) {
           threads.push('TG'+c)
         }
-        
         var replies = []
         for (var c=1;c<=4;c++) {
           replies.push('R'+c)
         }
-        
         for (thread of threads) {
           createThread(boardName,thread)
           var threadID
