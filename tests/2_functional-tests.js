@@ -13,61 +13,161 @@ var server = require('../server');
 
 chai.use(chaiHttp);
 
-suite('Functional Tests', function() {
-/*
-      test('1 stock', function(done) {
-       chai.request(server)
-        .get('/api/stock-prices?stock=goog')
-        .end(function(err, res){
-        var stockData =res.body
-           
-        console.log(stockData)  
-         assert.isDefined(stockData.stockData,'Object to have stockData element')
-          done()
+// block'o'definitions
+var url = process.env.DB
+var dbName = 'fcc'
+var collThread = 'msg'
+var collReply = 'reply'
+var mongo=require('mongodb').MongoClient
+var {ObjectId} = require('mongodb')
+//////////////////////
+
+
+function createThread(boardName,threadText) {
+chai.request(server)
+.post('/api/threads/'+boardName)
+.send({
+text: threadText, 
+delete_password: threadText
+})
+.end(function(err,res)  {
+})
+// return latest new threadid
+
+}
+
+function createReply(boardName,threadID,replyText) {
+  chai.request(server)
+  .post('/api/replies/'+boardName)
+  .send({
+  text: replyText,
+  thread_id: threadID, 
+  delete_password: threadText
+  })
+  .end(function(err,res)  {
+  })
+// return latest new replyid
+
+}
+
+// assume text unique for test purposes
+function getLatestThreadID(threadText) {
+  return new Promise(function (resolve,reject){
+    mongo.connect(url).then(
+    function(db){
+      dbo=db.db(dbName)
+      dbo.collection(collThread).find({text:threadText}).sort({created_on:1}).limit(1).toArray()
+      .then(function(threads){
+        if (threads) {
+           resolve(threads[0]._id)
+        } else {
+           reject('No threads')
+        }
+       })
+    }).catch(function(err){
+      reject(err)
+    })
+  })
+}
+
+function getLatestReplyID(replyText) {
+  return new Promise(function(resolve,resolve){
+    mongo.connect(url).then(
+      function(db){
+        dbo=db.db(dbName)
+        dbo.collection(collReply).find({text:replyText}).sort({created_on:1}).limit(1).toArray()
+        .then(function(replies){
+          if (replies) {
+           resolve(replies[0]._id)
+        } else {
+           reject('No replies')
+        }
+        
         })
+      }).catch(function(err){
+        reject(err)
       })
-*/
+    })
+  }
+  
+
+
+suite('Functional Tests', function() {
   suite('API ROUTING FOR /api/threads/:board', function() {
     
     suite('POST', function() {
       test('Test TP1',function(done) {
-        
-        chai.request(server)
-          .post('/api/threads/:board')
-         .send({
-          issue_title: 'Title',
-          issue_text: 'text', 
-          created_by: 'Functional Test - Every field filled in',
-          assigned_to: 'Chai and Mocha',
-          status_text: 'In QA'
+        var boardName = Date.toString()
+        var threadText = Date.toString()
+        createThread(boardName,threadText)
+        getLatestThreadID(threadText).then(
+          function(threadID) {
+            chai.request(server)
+            .get('/api/replies/'+boardName+'/?thread_id='+threadID)
+            .end(function(err,res) {
+              var thread = res.body
+              assert.equal(thread.text,threadText,'Text must match '+threadText)
+              done()
+            })
           })
-          .end(function(err,res)  {
-          assert.isNotNull(res.issue_title)
-          assert.isNotNull(res.text)
-          assert.isNotNull(res.delete_password)
-          assert.isNotNull(res._id)
-          assert.isNotNull(res.replies)
-          assert.isNotNull(res.bumped_on)
-          assert.isNotNull(res.created_on)
-            done()
-          })
-      })})
-    
+        })
+      })
+    })
     
     suite('GET', function() {
     test('Test TG1',function(done) {
-      chai.request(server)
-      .get('api/threads/:board')
-      .end(function(err,res) {
+        // create 11 threads
+        // create 4 replies on each
+        var boardName = Date.toString()
+        var threads = []
+        for (var c=1;c<=11;c++) {
+          threads.push('TG'+c)
+        }
+        var replies = []
+        for (var c=1;c<=4;c++) {
+          replies.push('R'+c)
+        }
+        for (thread of threads) {
+          createThread(boardName,thread)
+          var threadID
+          getLatestThreadID(function(threadID){
+            for (reply of replies){
+              createReply(boardName,threadID,reply)
+            }
+            
+            
+          })
+
+        }
+
+
+
+        // check 10 most recently bumped threads returned 
+
+        // check 3 most recent bumped threads returned
+        // check appropriate fields hidden
+        
+        
+        // check 11th thread not in res
+
+        // check 4th reply not in 1st thread
+        chai.request(server)
+        .get('api/threads/:board')
+        .end(function(err,res) {
         
         done()
       }
       
-    )})})
+    )})}) 
     
     suite('DELETE', function() {
       test('Test TD1',function(done) {
-      chai.request(server)
+        // create a thread on a new board
+        // load the board
+        // delete the first thread
+        // load the board
+        // check the text says [deleted]
+        chai.request(server)
       .delete('api/threads/:board')
       .end(function(err,res) {
         done()
@@ -77,9 +177,14 @@ suite('Functional Tests', function() {
     
     suite('PUT', function() {
       test('Test TU1',function(done) {
-       chai.request(server)
+        // create new board and thread
+        // load board
+        // report first thread
+        // check report of thread is true
+        chai.request(server)
       .put('api/threads/:board')
       .end(function(err,res) {
+        
         done()
       }
     )
@@ -89,7 +194,10 @@ suite('Functional Tests', function() {
     
     suite('POST', function() {
       test('Test RP1',function(done) {
-       chai.request(server)
+        // create new board and thread
+        // create reply on thread
+        // check thread bumped        
+        chai.request(server)
       .post('api/replies/:board')
       .end(function(err,res) {
         done()
@@ -98,24 +206,42 @@ suite('Functional Tests', function() {
     
     suite('GET', function() {
       test('Test RG1',function(done) {
-       chai.request(server)
+        // create new board and thread
+        // create new replies
+        // get thread and replies
+        // check all replies returned
+        // check fields hidden
+        chai.request(server)
       .get('api/replies/:board')
       .end(function(err,res) {
+        
         done()
       }
     )})})
     
     suite('PUT', function() {
       test('Test RU1',function(done) {
+        // create new board and thread
+        // create new reply
+        // report reply
+        // check reply for reported
        chai.request(server)
       .get('api/replies/:board')
       .end(function(err,res) {
+        
+      
         done()
+        
       }
     )})})
     
     suite('DELETE', function() {
-      test('Test RD1',function(done) {
+        // check reply marked as deleted
+        // create new board and thread
+        // create new reply
+        // delete reply
+        // check deleted
+        test('Test RD1',function(done) {
        chai.request(server)
       .delete('api/replies/:board')
       .end(function(err,res) {
@@ -124,6 +250,6 @@ suite('Functional Tests', function() {
     )})})
   
   })
-})
+
 
 
