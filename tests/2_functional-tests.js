@@ -32,7 +32,6 @@ delete_password: threadText
 })
 .end(function(err,res)  {
 })
-// return latest new threadid
 
 }
 
@@ -46,7 +45,6 @@ function createReply(boardName,threadID,replyText) {
   })
   .end(function(err,res)  {
   })
-// return latest new replyid
 
 }
 
@@ -81,8 +79,6 @@ function getLatestReplyID(replyText) {
     })
   }
   
-
-
 suite('Functional Tests', function() {
   suite('API ROUTING FOR /api/threads/:board', function() {
     
@@ -114,23 +110,23 @@ suite('Functional Tests', function() {
         for (var c=1;c<=11;c++) {
           threads.push('TG'+c)
         }
+        
         var replies = []
         for (var c=1;c<=4;c++) {
           replies.push('R'+c)
         }
+        
         for (thread of threads) {
           createThread(boardName,thread)
           var threadID
           getLatestThreadID(function(threadID){
             for (reply of replies){
               createReply(boardName,threadID,reply)
-            }
-            // rest of test here
-            
+            }            
           })
-
         }
 
+        console.log('here')
 
 
         // check 10 most recently bumped threads returned 
