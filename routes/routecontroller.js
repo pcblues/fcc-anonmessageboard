@@ -63,8 +63,7 @@ exports.gett=function(req,res){
               thread.replycount = allReplies.length 
               thread.replies=allReplies.slice(0,3)
               resolve()
-            })
-              
+            })  
           })
         }
 
