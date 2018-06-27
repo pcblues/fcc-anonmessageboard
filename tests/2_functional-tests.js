@@ -13,6 +13,9 @@ var server = require('../server');
 
 chai.use(chaiHttp);
 
+
+suite('Functional Tests', function() {
+
 // block'o'definitions
 var url = process.env.DB
 var dbName = 'fcc'
@@ -49,7 +52,7 @@ function createReply(boardName,threadID,replyText) {
         .send({
         text: replyText,
         thread_id: threadID, 
-        delete_password: threadText
+        delete_password: replyText
         })
         .end(function(err,res)  {
           resolve()
@@ -150,7 +153,6 @@ function getLatestReplyID(replyText) {
     }
 
 
-suite('Functional Tests', function() {
   suite('API ROUTING FOR /api/threads/:board', function() {
     
     suite('POST', function() {
