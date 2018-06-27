@@ -130,6 +130,31 @@ suite('Functional Tests', function() {
     suite('GET', function() {
     test('Test TG1',function(done) {
         function createRecords() {
+          
+          function addReplies(thread) {
+            return new Promise(function(resolve) {
+              createThread(boardName,thread)
+              .then(getLatestThreadID(thread)
+              .then(function(threadID){
+                for (reply of replies){
+                  createReply(boardName,threadID,reply)
+              }            
+              }))
+            })
+          }
+
+          function processThreads(threads) {
+            return threads.reduce(
+              function(promise,thread){
+                return promise.then(
+                  function(thread){
+                    return addReplies(thread)
+                  }
+                ).catch(function(err){console.log(err)})
+              }
+            ,Promise.resolve())
+          }
+
           return new Promise(function(resolve,reject) {
             // create 11 threads
             // create 4 replies on each
@@ -143,31 +168,10 @@ suite('Functional Tests', function() {
               replies.push('R'+c)
             }
 
-            function addReplies(thread) {
-              return new Promise(function(resolve) {
-                createThread(boardName,thread)
-                .then(getLatestThreadID(thread)
-                .then(function(threadID){
-                  for (reply of replies){
-                    createReply(boardName,threadID,reply)
-                }            
-                }))
-              })
-            }
-
-            function processThreads(threads) {
-              return threads.reduce(
-                function(promise,thread){
-                  return promise.then(
-                    function(thread){
-                      return addReplies(thread)
-                    }
-                  ).catch(function(err){console.log(err)})
-                }
-              ,Promise.resolve())
-            }
-          })
-        }
+            processThreads(threads).then(
+              function() {   })
+            })
+          }
 
         createRecords().then(function() {
 
