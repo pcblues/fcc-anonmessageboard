@@ -74,14 +74,14 @@ function getLatestThreadID(threadText) {
         }
        })
     }).catch(function(err){
-      reject(err)
+      doLog(err)
     })
   })
 }
 
 function getLatestReplyID(replyText) {
   doLog('getLatestReplyID')
-  return new Promise(function(resolve,resolve){
+  return new Promise(function(resolve,reject){
     mongo.connect(url).then(
       function(db){
         dbo=db.db(dbName)
@@ -100,6 +100,56 @@ function getLatestReplyID(replyText) {
     })
   }
   
+  function createRecords() {
+    var boardName      
+    var replies=[]
+    var threads = []
+      
+    function addReplies(thread) {
+      return new Promise(function(resolve) {
+        createThread(boardName,thread)
+        .then(getLatestThreadID(thread)
+        .then(function(threadID){
+          for (reply of replies){
+            createReply(boardName,threadID,reply)
+        }            
+        }))
+      })
+    }
+
+    function processThreads(threads) {
+      return threads.reduce(
+        function(promise,thread){
+          return promise.then(
+            function(thread){
+              return addReplies(thread)
+            }
+          ).catch(
+            function(err){
+              console.log(err)
+            })
+        }
+      ,Promise.resolve())
+    }
+
+    return new Promise(function(resolve,reject) {
+      // create 11 threads
+      // create 4 replies on each
+      boardName = (new Date).toString()
+      for (var c=1;c<=11;c++) {
+        threads.push('TG'+c)
+      }
+      
+      for (var c=1;c<=4;c++) {
+        replies.push('R'+c)
+      }
+
+      processThreads(threads).then(
+        function() {   })
+      })
+    }
+
+
 suite('Functional Tests', function() {
   suite('API ROUTING FOR /api/threads/:board', function() {
     
@@ -129,50 +179,6 @@ suite('Functional Tests', function() {
     
     suite('GET', function() {
     test('Test TG1',function(done) {
-        function createRecords() {
-          
-          function addReplies(thread) {
-            return new Promise(function(resolve) {
-              createThread(boardName,thread)
-              .then(getLatestThreadID(thread)
-              .then(function(threadID){
-                for (reply of replies){
-                  createReply(boardName,threadID,reply)
-              }            
-              }))
-            })
-          }
-
-          function processThreads(threads) {
-            return threads.reduce(
-              function(promise,thread){
-                return promise.then(
-                  function(thread){
-                    return addReplies(thread)
-                  }
-                ).catch(function(err){console.log(err)})
-              }
-            ,Promise.resolve())
-          }
-
-          return new Promise(function(resolve,reject) {
-            // create 11 threads
-            // create 4 replies on each
-            var boardName = (new Date).toString()
-            var threads = []
-            for (var c=1;c<=11;c++) {
-              threads.push('TG'+c)
-            }
-            var replies = []
-            for (var c=1;c<=4;c++) {
-              replies.push('R'+c)
-            }
-
-            processThreads(threads).then(
-              function() {   })
-            })
-          }
-
         createRecords().then(function() {
 
           console.log('here')
@@ -189,8 +195,8 @@ suite('Functional Tests', function() {
           assert.equal(1,0,'Create test')
           done()
 
-        }
-        ).catch(function(err){doLog(err)}
+        })
+      }).catch(function(err){doLog(err)}
       
     )})}) 
     
