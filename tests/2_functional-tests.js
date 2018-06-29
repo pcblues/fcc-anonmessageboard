@@ -38,9 +38,9 @@ function createThread(boardName,threadText) {
       delete_password: threadText
       })
       .end(function(err,res)  {
-        doLog('createdThread '+threadText)   
         getLatestThreadID(threadText)
         .then(function(threadID){
+          doLog('createdThread '+threadID+' '+threadText)   
           resolve(threadID)  
         })
       })
@@ -48,8 +48,7 @@ function createThread(boardName,threadText) {
 }
 
 function createReply(boardName,threadID,replyText) {
-  return new Promise(function (resolve) {
-        doLog('createReply '+threadID)
+  return new Promise(function (resolve,reject) {
         chai.request(server)
         .post('/api/replies/'+boardName)
         .send({
@@ -58,7 +57,11 @@ function createReply(boardName,threadID,replyText) {
         delete_password: replyText
         })
         .end(function(err,res)  {
-          resolve()
+          doLog('createdReply '+threadID+' '+replyText)
+          getLatestReplyID(replyText)
+          .then(function(replyID){
+            resolve(replyID)
+          })
         })
       }
   )
@@ -86,10 +89,8 @@ function getLatestThreadID(threadText) {
   })
 }
 
-
-
 function getLatestReplyID(replyText) {
-  doLog('getLatestReplyID')
+  doLog('getLatestReplyID '+replyText)
   return new Promise(function(resolve,reject){
     mongo.connect(url).then(
       function(db){
@@ -97,14 +98,14 @@ function getLatestReplyID(replyText) {
         dbo.collection(collReply).find({text:replyText}).sort({created_on:1}).limit(1).toArray()
         .then(function(replies){
           if (replies.length>0) {
-           resolve(replies[0]._id)
+          var replyID=replies[0]._id.toString()
+           resolve(replyID)
         } else {
            reject('No replies')
         }
-        
         })
       }).catch(function(err){
-        reject(err)
+        doLog(err)
       })
     })
   }
@@ -113,16 +114,29 @@ function getLatestReplyID(replyText) {
     var boardName      
     var replies=[]
     var threads = []
-      
+
+    function processReplies(threadID) {
+      return replies.reduce(
+        function (promise,replyText) {
+          return promise.then(
+            function(result) 
+            {
+              createReply(boardName,threadID,replyText)
+            })
+          },
+          Promise.resolve())
+        }
+              
+    
+
     function addReplies(thread) {
       return new Promise(function(resolve) {
         createThread(boardName,thread)
-        .then(getLatestThreadID(thread)
         .then(function(threadID){
-          for (reply of replies){
-            createReply(boardName,threadID,reply)
-        }            
-        }))
+          processReplies(threadID)
+          .then(resolve())
+        } 
+        )
       })
     }
 
@@ -154,7 +168,9 @@ function getLatestReplyID(replyText) {
       }
 
       processThreads(threads).then(
-        function() {   })
+        function() { 
+          resolve()
+          })
       })
     }
 
@@ -185,7 +201,7 @@ function getLatestReplyID(replyText) {
           })
         })
       })
-    })
+  
     */
     suite('GET', function() {
     test('Test TG1',function(done) {
@@ -202,8 +218,8 @@ function getLatestReplyID(replyText) {
           chai.request(server)
           .get('api/threads/:board')
           .end(function(err,res) {
-          assert.equal(1,0,'Create test')
-          done()
+            assert.equal(1,0,'Create test')
+           done()
 
         })
       }).catch(function(err){doLog(err)}
@@ -240,7 +256,12 @@ function getLatestReplyID(replyText) {
         done()
       }
     )
-  })})})
+  })})
+*/
+})
+
+
+/*
   
   suite('API ROUTING FOR /api/replies/:board', function() {
     
@@ -304,8 +325,11 @@ function getLatestReplyID(replyText) {
         done()
       }
     )})})
-    */
+    
   })
+  */
+})
+
 
 
 
