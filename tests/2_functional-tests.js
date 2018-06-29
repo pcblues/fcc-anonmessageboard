@@ -25,8 +25,12 @@ var mongo=require('mongodb').MongoClient
 var {ObjectId} = require('mongodb')
 //////////////////////
 
-var numThreads=2 // 11
-var numReplies=2 // 4
+var numThreads=1 // 11
+var numReplies=1 // 4
+
+var eleventhThreadID
+var fourthReplyIDFirstThread
+var firstThreadID
 
 function doLog(msg) {
   console.log(msg)
@@ -45,7 +49,7 @@ function createThread(boardName,threadText) {
         getLatestThreadID(threadText)
         .then(function(threadID){
           doLog('createdThread '+threadID+' '+threadText)   
-          resolve(threadID)  
+          //resolve(threadID)  
         })
       })
     })
@@ -173,8 +177,8 @@ function getLatestReplyID(replyText) {
       replies.push('R'+c)
     }
 
-    var prom = processThreads(threads) 
-    return prom 
+    return processThreads(threads) 
+   
     
     }
 
@@ -209,25 +213,44 @@ function getLatestReplyID(replyText) {
     */
     suite('GET', function() {
     test('Test TG1',function(done) {
-        var prom = createRecords()
-        prom.then(function() {
-
-          console.log('here')
-          // check 10 most recently bumped threads returned 
-
-          // check 3 most recent bumped threads returned
-          // check appropriate fields hidden          
-          // check 11th thread not in res
-
-          // check 4th reply not in 1st thread
+        createRecords()
+        .then(function() {
           chai.request(server)
           .get('api/threads/:board')
           .end(function(err,res) {
-            assert.equal(1,0,'Create test')
+            if(err) {
+              doLog(err)
+              assert.fail(0,1,'Error in processing')
+            } else {
+
+            // check appropriate fields hidden          
+            assert.isUndefined(res[0].reported ,'reported should not be defined')
+            assert.isUndefined(res[0].delete_password,'delete_password should not be defined')
+            // check 11th thread not in res TG11
+            var found11th=false
+            for (var c=0; c<=numThreads;c++) {
+              if (res[c].text=='TG11') {
+                found11th=true
+              }
+            }
+            assert.isTrue(found11th,'11th thread should not be returned')
+
+
+            // check 4th reply not in 1st thread R4
+            var found4th=false
+            for (var c=0;c<=numReplies;c++) {
+              if (res[0].replies[c].text=='R4') {
+                found4th=true
+              }
+            }
+            assert.isTrue(found4th,'4th reply should not be in replies')
+          }
             done()
 
         })
-      }).catch(function(err){doLog(err)}
+      }).catch(function(err){
+        doLog(err)
+        done()}
       
     )})}) 
     /*
