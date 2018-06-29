@@ -30,7 +30,7 @@ function doLog(msg) {
 }
 
 function createThread(boardName,threadText) {
-  return new Promise(function (resolve) {
+  return new Promise(function (resolve,reject) {
       chai.request(server)
       .post('/api/threads/'+boardName)
       .send({
@@ -38,8 +38,11 @@ function createThread(boardName,threadText) {
       delete_password: threadText
       })
       .end(function(err,res)  {
-        doLog('createdThread '+threadText)     
-        resolve();
+        doLog('createdThread '+threadText)   
+        getLatestThreadID(threadText)
+        .then(function(threadID){
+          resolve(threadID)  
+        })
       })
     })
 }
@@ -71,7 +74,8 @@ function getLatestThreadID(threadText) {
       dbo.collection(collThread).find({text:threadText}).sort({created_on:1}).limit(1).toArray()
       .then(function(threads){
         if (threads.length>0) {
-           resolve(threads[0]._id)
+          var threadID=threads[0]._id.toString()
+           resolve(threadID)
         } else {
            reject('No threads')
         }
@@ -81,6 +85,8 @@ function getLatestThreadID(threadText) {
     })
   })
 }
+
+
 
 function getLatestReplyID(replyText) {
   doLog('getLatestReplyID')
@@ -154,14 +160,14 @@ function getLatestReplyID(replyText) {
 
 
   suite('API ROUTING FOR /api/threads/:board', function() {
-    
+    /*
     suite('POST', function() {
       test('Test TP1',function(done) {
         var boardName = (new Date).getTime().toString()
         var threadText = (new Date).toLocaleString()
-        createThread(boardName,threadText)
-        .then(
-        getLatestThreadID(threadText).then(
+        var prom=createThread(boardName,threadText)
+
+        prom.then(
           function(threadID) {
             var reqText = '/api/replies/'+boardName+'/?thread_id='+threadID
             doLog('get:'+reqText) 
@@ -173,14 +179,14 @@ function getLatestReplyID(replyText) {
               done()
             })
           }).catch(function(err){
+            assert.fail(0,1,err)
             doLog('catch: '+err)
             done()
           })
-        )
         })
       })
     })
-    /*
+    */
     suite('GET', function() {
     test('Test TG1',function(done) {
         createRecords().then(function() {
@@ -203,7 +209,7 @@ function getLatestReplyID(replyText) {
       }).catch(function(err){doLog(err)}
       
     )})}) 
-    
+    /*
     suite('DELETE', function() {
       test('Test TD1',function(done) {
         // create a thread on a new board
