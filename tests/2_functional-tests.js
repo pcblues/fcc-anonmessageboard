@@ -25,12 +25,16 @@ var mongo=require('mongodb').MongoClient
 var {ObjectId} = require('mongodb')
 //////////////////////
 
+var numThreads=2 // 11
+var numReplies=2 // 4
+
 function doLog(msg) {
   console.log(msg)
 }
 
 function createThread(boardName,threadText) {
   return new Promise(function (resolve,reject) {
+      doLog('creatingThread '+threadText)
       chai.request(server)
       .post('/api/threads/'+boardName)
       .send({
@@ -49,6 +53,7 @@ function createThread(boardName,threadText) {
 
 function createReply(boardName,threadID,replyText) {
   return new Promise(function (resolve,reject) {
+        doLog('creatingReply '+threadID+' '+replyText)
         chai.request(server)
         .post('/api/replies/'+boardName)
         .send({
@@ -57,9 +62,7 @@ function createReply(boardName,threadID,replyText) {
         delete_password: replyText
         })
         .end(function(err,res)  {
-          doLog('createdReply '+threadID+' '+replyText)
-          getLatestReplyID(replyText)
-          .then(function(replyID){
+          getLatestReplyID(replyText).then(function(replyID){
             resolve(replyID)
           })
         })
@@ -116,25 +119,31 @@ function getLatestReplyID(replyText) {
     var threads = []
 
     function processReplies(threadID) {
+      doLog('processReplies: '+threadID)
       return replies.reduce(
         function (promise,replyText) {
-          return promise.then(
-            function(result) 
-            {
-              createReply(boardName,threadID,replyText)
-            })
-          },
-          Promise.resolve())
-        }
+          return promise.then(function(){
+            return createReply(boardName,threadID,replyText)
+            .then(function(result){
+              doLog('createdReply: '+result)
               
-    
-
+            })
+          })
+          }  
+          ,
+          Promise.resolve()
+        )
+      }
+              
     function addReplies(thread) {
       return new Promise(function(resolve) {
-        createThread(boardName,thread)
+        return createThread(boardName,thread)
         .then(function(threadID){
-          processReplies(threadID)
-          .then(resolve())
+          return processReplies(threadID)
+          .then(function(result){
+            doLog('processedReplies')
+            resolve()
+          })
         } 
         )
       })
@@ -143,7 +152,7 @@ function getLatestReplyID(replyText) {
     function processThreads(threads) {
       return threads.reduce(
         function(promise,threadText){
-          return promise.then(
+          return promise.then(          
             function(result){
               return addReplies(threadText)
             }
@@ -155,23 +164,18 @@ function getLatestReplyID(replyText) {
       ,Promise.resolve())
     }
 
-    return new Promise(function(resolve,reject) {
-      // create 11 threads
-      // create 4 replies on each
-      boardName = (new Date).getTime().toString()
-      for (var c=1;c<=11;c++) {
-        threads.push('TG'+c)
-      }
-      
-      for (var c=1;c<=4;c++) {
-        replies.push('R'+c)
-      }
+    boardName = (new Date).getTime().toString()
+    for (var c=1;c<=numThreads;c++) {
+      threads.push('TG'+c)
+    }
+    
+    for (var c=1;c<=numReplies;c++) {
+      replies.push('R'+c)
+    }
 
-      processThreads(threads).then(
-        function() { 
-          resolve()
-          })
-      })
+    var prom = processThreads(threads) 
+    return prom 
+    
     }
 
 
@@ -205,7 +209,8 @@ function getLatestReplyID(replyText) {
     */
     suite('GET', function() {
     test('Test TG1',function(done) {
-        createRecords().then(function() {
+        var prom = createRecords()
+        prom.then(function() {
 
           console.log('here')
           // check 10 most recently bumped threads returned 
@@ -219,7 +224,7 @@ function getLatestReplyID(replyText) {
           .get('api/threads/:board')
           .end(function(err,res) {
             assert.equal(1,0,'Create test')
-           done()
+            done()
 
         })
       }).catch(function(err){doLog(err)}
