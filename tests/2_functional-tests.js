@@ -38,7 +38,7 @@ function createThread(boardName,threadText) {
       delete_password: threadText
       })
       .end(function(err,res)  {
-        doLog('createdThread')     
+        doLog('createdThread '+threadText)     
         resolve();
       })
     })
@@ -46,7 +46,7 @@ function createThread(boardName,threadText) {
 
 function createReply(boardName,threadID,replyText) {
   return new Promise(function (resolve) {
-        doLog('createReply')
+        doLog('createReply '+threadID)
         chai.request(server)
         .post('/api/replies/'+boardName)
         .send({
@@ -63,7 +63,7 @@ function createReply(boardName,threadID,replyText) {
 
 // assume text unique for test purposes
 function getLatestThreadID(threadText) {
-  doLog('getLatestThreadID')
+  doLog('getLatestThreadID '+threadText)
   return new Promise(function (resolve,reject){
     mongo.connect(url).then(
     function(db){
@@ -122,10 +122,10 @@ function getLatestReplyID(replyText) {
 
     function processThreads(threads) {
       return threads.reduce(
-        function(promise,thread){
+        function(promise,threadText){
           return promise.then(
-            function(thread){
-              return addReplies(thread)
+            function(result){
+              return addReplies(threadText)
             }
           ).catch(
             function(err){
@@ -138,7 +138,7 @@ function getLatestReplyID(replyText) {
     return new Promise(function(resolve,reject) {
       // create 11 threads
       // create 4 replies on each
-      boardName = (new Date).toString()
+      boardName = (new Date).getTime().toString()
       for (var c=1;c<=11;c++) {
         threads.push('TG'+c)
       }
@@ -157,28 +157,30 @@ function getLatestReplyID(replyText) {
     
     suite('POST', function() {
       test('Test TP1',function(done) {
-        var boardName = (new Date).toLocaleString()
+        var boardName = (new Date).getTime().toString()
         var threadText = (new Date).toLocaleString()
         createThread(boardName,threadText)
         .then(
         getLatestThreadID(threadText).then(
           function(threadID) {
+            var reqText = '/api/replies/'+boardName+'/?thread_id='+threadID
+            doLog('get:'+reqText) 
             chai.request(server)
-            .get('/api/replies/'+boardName+'/?thread_id='+threadID)
+            .get(reqText)
             .end(function(err,res) {
               var thread = res.body
               assert.equal(thread.text,threadText,'Text must match '+threadText)
               done()
             })
-          }).catch(function(){
-            doLog('catch')
+          }).catch(function(err){
+            doLog('catch: '+err)
             done()
           })
         )
         })
       })
     })
-    
+    /*
     suite('GET', function() {
     test('Test TG1',function(done) {
         createRecords().then(function() {
@@ -296,7 +298,7 @@ function getLatestReplyID(replyText) {
         done()
       }
     )})})
-  
+    */
   })
 
 

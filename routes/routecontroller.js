@@ -11,7 +11,7 @@ var {ObjectId} = require('mongodb')
 
 
 var log=function(msg){
-  console.log(msg)
+  //console.log(msg)
 }
 
 
