@@ -46,6 +46,7 @@ function createThread(boardName,threadText) {
         delete_password: threadText
       })
       .end(function(err,res)  {
+        if (err) {reject(err)}
         getLatestThreadID(threadText)
         .then(function(threadID){
           doLog('createdThread '+threadID+' '+threadText)   
@@ -219,6 +220,7 @@ function getLatestReplyID(replyText) {
       })
   
     
+    // This is not getting the requisite done() ?
 
     suite('GET', function() {
     test('Test TG1',function(done) {
@@ -229,18 +231,17 @@ function getLatestReplyID(replyText) {
           if(err) {
             doLog(err)
             assert.fail(0,1,'Error in processing')
-          } else {
-  
-          // check appropriate fields hidden          
-          assert.isUndefined(res[0].reported ,'reported should not be defined')
-          assert.isUndefined(res[0].delete_password,'delete_password should not be defined')
-          // check 11th thread not in res TG11
-          var found11th=false
-          for (var c=0; c<=numThreads;c++) {
-            if (res[c].text=='TG11') {
-              found11th=true
+          } else {  
+            // check appropriate fields hidden          
+            assert.isUndefined(res[0].reported ,'reported should not be defined')
+            assert.isUndefined(res[0].delete_password,'delete_password should not be defined')
+            // check 11th thread not in res TG11
+            var found11th=false
+            for (var c=0; c<=numThreads;c++) {
+              if (res[c].text=='TG11') {
+                found11th=true
+              }
             }
-          }
           assert.isTrue(found11th,'11th thread should not be returned')
   
           // check 4th reply not in 1st thread R4
@@ -255,7 +256,7 @@ function getLatestReplyID(replyText) {
         })
       }
   
-          createRecords()
+      createRecords()
         .then(function() {
             doGetTest()   
             done()
@@ -263,8 +264,10 @@ function getLatestReplyID(replyText) {
       }).catch(function(err){
         doLog(err)
         done()})
-    })
+      })
     }) 
+    
+
     
     suite('DELETE', function() {
       test('Test TD1',function(done) {
@@ -284,16 +287,19 @@ function getLatestReplyID(replyText) {
               delete_password:threadText
               })
             .end(function(err,res) {
-            // load the thread
-            var reqText = '/api/replies/'+boardName+'/?thread_id='+threadID
-              doLog('get:'+reqText) 
-              chai.request(server)
-              .get(reqText)
-              .end(function(err,res) {
-                var thread = res.body
-                // check the text says [deleted]
-                assert.equal(thread.text,'[deleted]','Text must match [deleted]')
-                done()
+              if (err) {
+                doLog(err)
+              }
+               // load the thread
+               var reqText = '/api/replies/'+boardName+'/?thread_id='+threadID
+               doLog('get:'+reqText) 
+               chai.request(server)
+               .get(reqText)
+               .end(function(err,res) {
+                  var thread = res.body
+                  // check the text says [deleted]
+                  assert.equal(thread.text,'[deleted]','Text must match [deleted]')
+                  done()
               })
             })
           }).catch(function(err){
@@ -323,18 +329,17 @@ function getLatestReplyID(replyText) {
               thread_id: threadID
               })
             .end(function(err,res) {
+              if (err) {doLog(err)}
               assert.equal(res.text,'success','Success to be returned as text')
               done()
             }).catch(function(err){
-            assert.fail(0,1,err)
-            doLog('catch: '+err)
-            done()
-          })
+              assert.fail(0,1,err)
+              doLog('catch: '+err)
+              done()
+            })
         })
       })
-
-    })
-    
+    }) 
   })
 
   

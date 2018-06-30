@@ -11,7 +11,7 @@ var {ObjectId} = require('mongodb')
 
 
 var log=function(msg){
-  //console.log(msg)
+  console.log(msg)
 }
 
 
@@ -91,8 +91,8 @@ exports.gett=function(req,res){
 
     exports.postt=function (req, res){
       // create thread
-      log('postt')
       var board = req.params.board
+      log('postt: '+board)
       var dbo
       mongo.connect(url)
         .then(function(db) {
@@ -105,7 +105,9 @@ exports.gett=function(req,res){
         .then(function() {             
           var path = getBoardPath(board)
           res.redirect(path)
+          
         })
+        db.close()
       }).catch(function(err){console.log(err)})
     }
     
@@ -117,11 +119,11 @@ exports.gett=function(req,res){
       // report thread
       log('putt')
       
-      var thread_id = req.body.report_id
+      var thread_id = req.body.thread_id
       var dbo
       mongo.connect(url).then(function(db) {
         dbo=db.db(dbName)
-        return db.collection(collThread).findOne({_id:ObjectId(thread_id)})})
+        return db.collection(collThread).findOne({_id:ObjectId(thread_id)})
       .then(function(thread){
         if (thread) {
           thread.reported=true        
@@ -130,8 +132,9 @@ exports.gett=function(req,res){
             res.send('success')
           })
         }
-      })  
-      .catch(function (err) {console.log(err)})      
+      })
+      db.close()
+    }).catch(function (err) {console.log(err)})      
     }
     
     exports.deletet=function (req, res){
@@ -159,6 +162,8 @@ exports.gett=function(req,res){
             res.send('incorrect password')
           }
         })
+      
+        db.close()
       }).catch(function (err) {console.log(err)})      
    }
     
@@ -189,8 +194,9 @@ exports.gett=function(req,res){
             res.setHeader('Content-Type', 'application/json')
             res.send(myThread)
           })
-        })
-      .catch(function(err) {
+        
+          db.close()
+        }).catch(function(err) {
         log(err)
       })
      }
@@ -209,20 +215,20 @@ exports.gett=function(req,res){
       mongo.connect(url)
       .then(function(db) {
         dbo=db.db(dbName)
-        return dbo.collection(collThread).findOne( {_id:ObjectId(thread_id)} )
-      })
+        dbo.collection(collThread).findOne( {_id:ObjectId(thread_id)} )
       .then(function(thread) {
         myThread=thread
         var newReply = populateNewReply(thread.board,thread._id)
         newReply.text = req.body.text
         newReply.delete_password = req.body.delete_password
-        return dbo.collection(collReply).insert(newReply)
-      }).then(function(reply){
+        dbo.collection(collReply).insert(newReply)
+        .then(function(reply){
         myThread.bumped_on=reply.created_on
-        return dbo.collection(collThread).update({_id:myThread._id},myThread)
-      })
-      .then(function() {             
+        dbo.collection(collThread).update({_id:myThread._id},myThread)
+        .then(function() {             
           res.redirect(getThreadPath(board,thread_id))
+      })})})
+      db.close()
       }).catch(function (err) {
         console.log(err)
         res.send('Error creating reply: '+err)
@@ -251,7 +257,8 @@ exports.gett=function(req,res){
           //failure callback
           console.log(err)
           res.send('failure')
-        });  
+        })  
+      db.close()
       }).catch(function (err) {console.log(err)})      
     }
     
@@ -279,6 +286,8 @@ exports.gett=function(req,res){
             res.send('incorrect password')
           }
         })
+        db.close()
+
       }).catch(function (err) {console.log(err)})      
     }
     
