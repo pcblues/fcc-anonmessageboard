@@ -42,14 +42,14 @@ function createThread(boardName,threadText) {
       chai.request(server)
       .post('/api/threads/'+boardName)
       .send({
-      text: threadText, 
-      delete_password: threadText
+        text: threadText, 
+        delete_password: threadText
       })
       .end(function(err,res)  {
         getLatestThreadID(threadText)
         .then(function(threadID){
           doLog('createdThread '+threadID+' '+threadText)   
-          //resolve(threadID)  
+          resolve(threadID)  
         })
       })
     })
@@ -66,6 +66,7 @@ function createReply(boardName,threadID,replyText) {
         delete_password: replyText
         })
         .end(function(err,res)  {
+          if (err) {reject(err)}
           getLatestReplyID(replyText).then(function(replyID){
             resolve(replyID)
           })
@@ -177,7 +178,15 @@ function getLatestReplyID(replyText) {
       replies.push('R'+c)
     }
 
-    return processThreads(threads) 
+    var prom = new Promise(function(resolve,reject){
+      
+       processThreads(threads).then(
+         function(){
+           resolve()
+          }) 
+      })
+
+    return prom
    
     
     }
@@ -210,89 +219,128 @@ function getLatestReplyID(replyText) {
         })
       })
   
-    */
+    
+
     suite('GET', function() {
     test('Test TG1',function(done) {
-        createRecords()
-        .then(function() {
-          chai.request(server)
-          .get('api/threads/:board')
-          .end(function(err,res) {
-            if(err) {
-              doLog(err)
-              assert.fail(0,1,'Error in processing')
-            } else {
-
-            // check appropriate fields hidden          
-            assert.isUndefined(res[0].reported ,'reported should not be defined')
-            assert.isUndefined(res[0].delete_password,'delete_password should not be defined')
-            // check 11th thread not in res TG11
-            var found11th=false
-            for (var c=0; c<=numThreads;c++) {
-              if (res[c].text=='TG11') {
-                found11th=true
-              }
+      function doGetTest() {
+        chai.request(server)
+        .get('api/threads/:board')
+        .end(function(err,res) {
+          if(err) {
+            doLog(err)
+            assert.fail(0,1,'Error in processing')
+          } else {
+  
+          // check appropriate fields hidden          
+          assert.isUndefined(res[0].reported ,'reported should not be defined')
+          assert.isUndefined(res[0].delete_password,'delete_password should not be defined')
+          // check 11th thread not in res TG11
+          var found11th=false
+          for (var c=0; c<=numThreads;c++) {
+            if (res[c].text=='TG11') {
+              found11th=true
             }
-            assert.isTrue(found11th,'11th thread should not be returned')
-
-
-            // check 4th reply not in 1st thread R4
-            var found4th=false
-            for (var c=0;c<=numReplies;c++) {
-              if (res[0].replies[c].text=='R4') {
-                found4th=true
-              }
-            }
-            assert.isTrue(found4th,'4th reply should not be in replies')
           }
-            done()
-
+          assert.isTrue(found11th,'11th thread should not be returned')
+  
+          // check 4th reply not in 1st thread R4
+          var found4th=false
+          for (var c=0;c<=numReplies;c++) {
+            if (res[0].replies[c].text=='R4') {
+              found4th=true
+            }
+          }
+          assert.isTrue(found4th,'4th reply should not be in replies')
+        }
         })
+      }
+  
+          createRecords()
+        .then(function() {
+            doGetTest()   
+            done()
+        
       }).catch(function(err){
         doLog(err)
-        done()}
-      
-    )})}) 
-    /*
+        done()})
+    })
+    }) 
+    
     suite('DELETE', function() {
       test('Test TD1',function(done) {
         // create a thread on a new board
-        // load the board
-        // delete the first thread
-        // load the board
-        // check the text says [deleted]
-        chai.request(server)
-      .delete('api/threads/:board')
-      .end(function(err,res) {
-        assert.equal(1,0,'Create test')
-        done()
-      }
+        var boardName = (new Date).getTime().toString()
+        var threadText = (new Date).toLocaleString()
+        var prom=createThread(boardName,threadText)
+        prom.then(
+          function(threadID) {
+            // delete the thread
+            var reqText = '/api/threads/'+boardName
+            doLog('delete:'+reqText) 
+            chai.request(server)
+            .delete(reqText)
+            .send({
+              thread_id: threadID, 
+              delete_password:threadText
+              })
+            .end(function(err,res) {
+            // load the thread
+            var reqText = '/api/replies/'+boardName+'/?thread_id='+threadID
+              doLog('get:'+reqText) 
+              chai.request(server)
+              .get(reqText)
+              .end(function(err,res) {
+                var thread = res.body
+                // check the text says [deleted]
+                assert.equal(thread.text,'[deleted]','Text must match [deleted]')
+                done()
+              })
+            })
+          }).catch(function(err){
+            assert.fail(0,1,err)
+            doLog('catch: '+err)
+            done()
+          })
+        })
+      })        
     
-    )})})
+    */
     
     suite('PUT', function() {
       test('Test TU1',function(done) {
-        // create new board and thread
-        // load board
-        // report first thread
-        // check report of thread is true
-        chai.request(server)
-      .put('api/threads/:board')
-      .end(function(err,res) {
-        assert.equal(1,0,'Create test')
-        
-        done()
-      }
-    )
-  })})
-*/
-})
+        // create a thread on a new board
+        var boardName = (new Date).getTime().toString()
+        var threadText = (new Date).toLocaleString()
+        var prom=createThread(boardName,threadText)
+        prom.then(
+          function(threadID) {
+            // report the thread
+            var reqText = '/api/threads/'+boardName
+            doLog('report:'+reqText) 
+            chai.request(server)
+            .put(reqText)
+            .send({
+              thread_id: threadID
+              })
+            .end(function(err,res) {
+              assert.equal(res.text,'success','Success to be returned as text')
+              done()
+            }).catch(function(err){
+            assert.fail(0,1,err)
+            doLog('catch: '+err)
+            done()
+          })
+        })
+      })
 
+    })
+  })
 
-/*
   
   suite('API ROUTING FOR /api/replies/:board', function() {
     
+/*
     suite('POST', function() {
       test('Test RP1',function(done) {
         // create new board and thread
@@ -353,9 +401,9 @@ function getLatestReplyID(replyText) {
         done()
       }
     )})})
-    
+  */  
   })
-  */
+  
 })
 
 
