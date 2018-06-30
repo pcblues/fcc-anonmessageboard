@@ -391,9 +391,6 @@ function getLatestReplyID(replyText) {
             var promReply = createReply(boardName,threadID,replyText)
             promReply.then(
               function(replyID) {
-                // create new board and thread  
-                // create reply on thread
-                // check thread bumped matches reply created_on        
                 var reqText = '/api/replies/'+boardName+'/?thread_id='+threadID
                 doLog('get:'+reqText) 
                 chai.request(server)
@@ -401,7 +398,8 @@ function getLatestReplyID(replyText) {
                 .end(function(err,res) {
                   var thread = res.body
                   var reply = thread.replies[0]
-                  assert.equal(thread.bumped_on ,reply.created_on,'Thread bumped_on should equal Reply.created_on')
+                  assert.isUndefined(reply.reported,'reply.reported should not be in results')
+                  assert.isUndefined(reply.delete_password,'reply.delete_password should not be in results')
                   done()
                 })
               }).catch(function(err){
@@ -428,18 +426,17 @@ function getLatestReplyID(replyText) {
           function(threadID) {
             var promReply = createReply(boardName,threadID,replyText)
             promReply.then(
-              function(replyID) {
-                // create new board and thread  
-                // create reply on thread
-                // check thread bumped matches reply created_on        
+              function(replyID) {    
                 var reqText = '/api/replies/'+boardName+'/?thread_id='+threadID
-                doLog('get:'+reqText) 
+                doLog('put:'+reqText) 
                 chai.request(server)
-                .get(reqText)
+                .put(reqText)
+                .send({
+                  reply_id: replyID,
+                  thread_id: threadID 
+                  })
                 .end(function(err,res) {
-                  var thread = res.body
-                  var reply = thread.replies[0]
-                  assert.equal(thread.bumped_on ,reply.created_on,'Thread bumped_on should equal Reply.created_on')
+                  assert.equal(res.text ,'success','Successfully marked reported')
                   done()
                 })
               }).catch(function(err){
@@ -447,7 +444,9 @@ function getLatestReplyID(replyText) {
                 doLog('catch: '+err)
                 done()
               })
-      })})})
+      })
+          }
+      )})
     
     
     suite('DELETE', function() {
@@ -466,18 +465,20 @@ function getLatestReplyID(replyText) {
             function(threadID) {
               var promReply = createReply(boardName,threadID,replyText)
               promReply.then(
-                function(replyID) {
-                  // create new board and thread  
-                  // create reply on thread
-                  // check thread bumped matches reply created_on        
+                function(replyID) {    
                   var reqText = '/api/replies/'+boardName+'/?thread_id='+threadID
-                  doLog('get:'+reqText) 
+                  doLog('delete:'+reqText) 
                   chai.request(server)
-                  .get(reqText)
+                  .delete(reqText)
+                  .send({
+                    reply_id: replyID,
+                    thread_id: threadID, 
+                    delete_password: replyText
+                    })
                   .end(function(err,res) {
                     var thread = res.body
                     var reply = thread.replies[0]
-                    assert.equal(thread.bumped_on ,reply.created_on,'Thread bumped_on should equal Reply.created_on')
+                    assert.equal(reply.text ,'[deleted]','Reply text should be [deleted]')
                     done()
                   })
                 }).catch(function(err){
@@ -485,7 +486,9 @@ function getLatestReplyID(replyText) {
                   doLog('catch: '+err)
                   done()
                 })
-        })})})
+        })
+      }
+    )})
       
   
   })
