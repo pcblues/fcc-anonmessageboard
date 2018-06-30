@@ -193,7 +193,6 @@ function getLatestReplyID(replyText) {
 
 
   suite('API ROUTING FOR /api/threads/:board', function() {
-    /*
     suite('POST', function() {
       test('Test TP1',function(done) {
         var boardName = (new Date).getTime().toString()
@@ -305,7 +304,7 @@ function getLatestReplyID(replyText) {
         })
       })        
     
-    */
+    
     
     suite('PUT', function() {
       test('Test TU1',function(done) {
@@ -335,22 +334,43 @@ function getLatestReplyID(replyText) {
       })
 
     })
+    
   })
 
   
   suite('API ROUTING FOR /api/replies/:board', function() {
     
-/*
+
     suite('POST', function() {
       test('Test RP1',function(done) {
-        // create new board and thread
-        // create reply on thread
-        // check thread bumped        
-        chai.request(server)
-      .post('api/replies/:board')
-      .end(function(err,res) {
-        assert.equal(1,0,'Create test')
-        done()
+        var boardName = (new Date).getTime().toString()
+        var threadText = (new Date).toLocaleString()
+        var replyText = 'test'
+        var prom=createThread(boardName,threadText)
+
+        prom.then(
+          function(threadID) {
+            var promReply = createReply(boardName,threadID,replyText)
+            promReply.then(
+              function(replyID) {
+                // create new board and thread  
+                // create reply on thread
+                // check thread bumped matches reply created_on        
+                var reqText = '/api/replies/'+boardName+'/?thread_id='+threadID
+                doLog('get:'+reqText) 
+                chai.request(server)
+                .get(reqText)
+                .end(function(err,res) {
+                  var thread = res.body
+                  var reply = thread.replies[0]
+                  assert.equal(thread.bumped_on ,reply.created_on,'Thread bumped_on should equal Reply.created_on')
+                  done()
+                })
+              }).catch(function(err){
+                assert.fail(0,1,err)
+                doLog('catch: '+err)
+                done()
+              })
       }
     )})})
     
@@ -361,13 +381,36 @@ function getLatestReplyID(replyText) {
         // get thread and replies
         // check all replies returned
         // check fields hidden
-        chai.request(server)
-      .get('api/replies/:board')
-      .end(function(err,res) {
-        assert.equal(1,0,'Create test')
-        
-        done()
+        var boardName = (new Date).getTime().toString()
+        var threadText = (new Date).toLocaleString()
+        var replyText = 'test'
+        var prom=createThread(boardName,threadText)
+
+        prom.then(
+          function(threadID) {
+            var promReply = createReply(boardName,threadID,replyText)
+            promReply.then(
+              function(replyID) {
+                // create new board and thread  
+                // create reply on thread
+                // check thread bumped matches reply created_on        
+                var reqText = '/api/replies/'+boardName+'/?thread_id='+threadID
+                doLog('get:'+reqText) 
+                chai.request(server)
+                .get(reqText)
+                .end(function(err,res) {
+                  var thread = res.body
+                  var reply = thread.replies[0]
+                  assert.equal(thread.bumped_on ,reply.created_on,'Thread bumped_on should equal Reply.created_on')
+                  done()
+                })
+              }).catch(function(err){
+                assert.fail(0,1,err)
+                doLog('catch: '+err)
+                done()
+              })
       }
+      
     )})})
     
     suite('PUT', function() {
@@ -376,16 +419,36 @@ function getLatestReplyID(replyText) {
         // create new reply
         // report reply
         // check reply for reported
-       chai.request(server)
-      .get('api/replies/:board')
-      .end(function(err,res) {
-        
-        assert.equal(1,0,'Create test')
-      
-        done()
-        
-      }
-    )})})
+        var boardName = (new Date).getTime().toString()
+        var threadText = (new Date).toLocaleString()
+        var replyText = 'test'
+        var prom=createThread(boardName,threadText)
+
+        prom.then(
+          function(threadID) {
+            var promReply = createReply(boardName,threadID,replyText)
+            promReply.then(
+              function(replyID) {
+                // create new board and thread  
+                // create reply on thread
+                // check thread bumped matches reply created_on        
+                var reqText = '/api/replies/'+boardName+'/?thread_id='+threadID
+                doLog('get:'+reqText) 
+                chai.request(server)
+                .get(reqText)
+                .end(function(err,res) {
+                  var thread = res.body
+                  var reply = thread.replies[0]
+                  assert.equal(thread.bumped_on ,reply.created_on,'Thread bumped_on should equal Reply.created_on')
+                  done()
+                })
+              }).catch(function(err){
+                assert.fail(0,1,err)
+                doLog('catch: '+err)
+                done()
+              })
+      })})})
+    
     
     suite('DELETE', function() {
         // check reply marked as deleted
@@ -394,14 +457,37 @@ function getLatestReplyID(replyText) {
         // delete reply
         // check deleted
         test('Test RD1',function(done) {
-       chai.request(server)
-      .delete('api/replies/:board')
-      .end(function(err,res) {
-        assert.equal(1,0,'Create test')
-        done()
-      }
-    )})})
-  */  
+          var boardName = (new Date).getTime().toString()
+          var threadText = (new Date).toLocaleString()
+          var replyText = 'test'
+          var prom=createThread(boardName,threadText)
+  
+          prom.then(
+            function(threadID) {
+              var promReply = createReply(boardName,threadID,replyText)
+              promReply.then(
+                function(replyID) {
+                  // create new board and thread  
+                  // create reply on thread
+                  // check thread bumped matches reply created_on        
+                  var reqText = '/api/replies/'+boardName+'/?thread_id='+threadID
+                  doLog('get:'+reqText) 
+                  chai.request(server)
+                  .get(reqText)
+                  .end(function(err,res) {
+                    var thread = res.body
+                    var reply = thread.replies[0]
+                    assert.equal(thread.bumped_on ,reply.created_on,'Thread bumped_on should equal Reply.created_on')
+                    done()
+                  })
+                }).catch(function(err){
+                  assert.fail(0,1,err)
+                  doLog('catch: '+err)
+                  done()
+                })
+        })})})
+      
+  
   })
   
 })
