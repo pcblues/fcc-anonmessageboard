@@ -25,12 +25,12 @@ var mongo=require('mongodb').MongoClient
 var {ObjectId} = require('mongodb')
 //////////////////////
 
-var numThreads=1 // 11
-var numReplies=1 // 4
+var numThreads=11 // 11
+var numReplies=4 // 4
 
 
 function doLog(msg) {
-  console.log(msg)
+  //console.log(msg)
 }
 
 function createThread(boardName,threadText) {
@@ -215,7 +215,7 @@ function getLatestReplyID(replyText) {
 
   suite('API ROUTING FOR /api/threads/:board', function() {
     
-    /*
+    
     suite('POST', function() {
       test('Test TP1',function(done) {
         var boardName = (new Date).getTime().toString()
@@ -293,8 +293,8 @@ function getLatestReplyID(replyText) {
         })
     }) 
     
-    */
-   /*
+    
+   
     suite('DELETE', function() {
       test('Test TD1',function(done) {
         // create a thread on a new board
@@ -356,13 +356,13 @@ function getLatestReplyID(replyText) {
         })
       })
     }) 
-  */
+  
   })
 
   
   suite('API ROUTING FOR /api/replies/:board', function() {
     
-/*
+
     suite('POST', function() {
       test('Test RP1',function(done) {
         var boardName = (new Date).getTime().toString()
@@ -431,7 +431,7 @@ function getLatestReplyID(replyText) {
       }
       
     )})})
-    */
+    
     suite('PUT', function() {
       test('Test RU1',function(done) {
         // create new board and thread
@@ -489,7 +489,7 @@ function getLatestReplyID(replyText) {
           }
       )})
     
-    /*
+    
     suite('DELETE', function() {
         // check reply marked as deleted
         // create new board and thread
@@ -546,7 +546,7 @@ function getLatestReplyID(replyText) {
         })
       }
     )})
-  */    
+   
   
   })
   
