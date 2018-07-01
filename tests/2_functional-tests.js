@@ -28,9 +28,6 @@ var {ObjectId} = require('mongodb')
 var numThreads=1 // 11
 var numReplies=1 // 4
 
-var eleventhThreadID
-var fourthReplyIDFirstThread
-var firstThreadID
 
 function doLog(msg) {
   console.log(msg)
@@ -50,30 +47,12 @@ function createThread(boardName,threadText) {
         getLatestThreadID(threadText)
         .then(function(threadID){
           doLog('createdThread '+threadID+' '+threadText)   
-          resolve(threadID)  
-        })
+          resolve(threadID) 
+        },
+        function(err){reject(err)}
+      )
       })
     })
-}
-
-function createReply(boardName,threadID,replyText) {
-  return new Promise(function (resolve,reject) {
-        doLog('creatingReply '+threadID+' '+replyText)
-        chai.request(server)
-        .post('/api/replies/'+boardName)
-        .send({
-        text: replyText,
-        thread_id: threadID, 
-        delete_password: replyText
-        })
-        .end(function(err,res)  {
-          if (err) {reject(err)}
-          getLatestReplyID(replyText).then(function(replyID){
-            resolve(replyID)
-          })
-        })
-      }
-  )
 }
 
 // assume text unique for test purposes
@@ -97,6 +76,27 @@ function getLatestThreadID(threadText) {
     })
   })
 }
+
+function createReply(boardName,threadID,replyText) {
+  return new Promise(function (resolve,reject) {
+        doLog('creatingReply '+threadID+' '+replyText)
+        chai.request(server)
+        .post('/api/replies/'+boardName)
+        .send({
+        text: replyText,
+        thread_id: threadID, 
+        delete_password: replyText
+        })
+        .end(function(err,res)  {
+          if (err) {reject(err)}
+          getLatestReplyID(replyText).then(function(replyID){
+            resolve(replyID)
+          })
+        })
+      }
+  )
+}
+
 
 function getLatestReplyID(replyText) {
   doLog('getLatestReplyID '+replyText)
@@ -183,7 +183,7 @@ function getLatestReplyID(replyText) {
       
        processThreads(threads).then(
          function(){
-           resolve()
+           resolve(boardName)
           }) 
       })
 
@@ -194,6 +194,8 @@ function getLatestReplyID(replyText) {
 
 
   suite('API ROUTING FOR /api/threads/:board', function() {
+    
+    
     suite('POST', function() {
       test('Test TP1',function(done) {
         var boardName = (new Date).getTime().toString()
@@ -224,50 +226,53 @@ function getLatestReplyID(replyText) {
 
     suite('GET', function() {
     test('Test TG1',function(done) {
-      function doGetTest() {
-        chai.request(server)
-        .get('api/threads/:board')
-        .end(function(err,res) {
-          if(err) {
-            doLog(err)
-            assert.fail(0,1,'Error in processing')
-          } else {  
-            // check appropriate fields hidden          
-            assert.isUndefined(res[0].reported ,'reported should not be defined')
-            assert.isUndefined(res[0].delete_password,'delete_password should not be defined')
-            // check 11th thread not in res TG11
-            var found11th=false
-            for (var c=0; c<=numThreads;c++) {
-              if (res[c].text=='TG11') {
-                found11th=true
+      function doGetTest(boardName) {
+        return new Promise(function(resolve,reject) {
+          chai.request(server)
+          .get('/api/threads/'+boardName)
+          .end(function(err,res) {
+            if(err) {
+              doLog(err)
+              assert.fail(0,1,'Error in processing')
+            } else {  
+              // check appropriate fields hidden   
+              var threads = res.body
+
+              assert.isUndefined(threads[0].reported ,'reported should not be defined')
+              assert.isUndefined(threads[0].delete_password,'delete_password should not be defined')
+              // check 11th thread not in res TG11
+              var found11th=false
+              for (var c=0; c<numThreads;c++) {
+                if (threads[c].text=='TG11') {
+                  found11th=true
+                }
+              }
+            assert.isFalse(found11th,'11th thread should not be returned')
+    
+            // check 4th reply not in 1st thread R4
+            var found4th=false
+            for (var c=0;c<numReplies;c++) {
+              if (threads[0].replies[c].text=='R4') {
+                found4th=true
               }
             }
-          assert.isTrue(found11th,'11th thread should not be returned')
-  
-          // check 4th reply not in 1st thread R4
-          var found4th=false
-          for (var c=0;c<=numReplies;c++) {
-            if (res[0].replies[c].text=='R4') {
-              found4th=true
-            }
-          }
-          assert.isTrue(found4th,'4th reply should not be in replies')
-        }
+            assert.isFalse(found4th,'4th reply should not be in replies')
+            resolve()}
+          })
         })
       }
   
       createRecords()
-        .then(function() {
-            doGetTest()   
-            done()
-        
-      }).catch(function(err){
-        doLog(err)
-        done()})
-      })
+        .then(function(boardName) {
+            doGetTest(boardName).then(function() { 
+              done()
+          })
+        }).catch(function(err){
+          doLog(err)
+          done()})
+        })
     }) 
     
-
     
     suite('DELETE', function() {
       test('Test TD1',function(done) {
@@ -340,6 +345,7 @@ function getLatestReplyID(replyText) {
         })
       })
     }) 
+  
   })
 
   
@@ -357,15 +363,13 @@ function getLatestReplyID(replyText) {
           function(threadID) {
             var promReply = createReply(boardName,threadID,replyText)
             promReply.then(
-              function(replyID) {
-                // create new board and thread  
-                // create reply on thread
-                // check thread bumped matches reply created_on        
+              function(replyID) {   
                 var reqText = '/api/replies/'+boardName+'/?thread_id='+threadID
                 doLog('get:'+reqText) 
                 chai.request(server)
                 .get(reqText)
                 .end(function(err,res) {
+                  if (err) {doLog(err)}
                   var thread = res.body
                   var reply = thread.replies[0]
                   assert.equal(thread.bumped_on ,reply.created_on,'Thread bumped_on should equal Reply.created_on')
@@ -481,9 +485,14 @@ function getLatestReplyID(replyText) {
                     delete_password: replyText
                     })
                   .end(function(err,res) {
+                    if (err) {doLog(err)}
                     var thread = res.body
-                    var reply = thread.replies[0]
-                    assert.equal(reply.text ,'[deleted]','Reply text should be [deleted]')
+                    if (thread.replies.length>0) {
+                      var reply = thread.replies[0]
+                      assert.equal(reply.text ,'[deleted]','Reply text should be [deleted]')
+                      } else {
+                        assert.fail(1,0,'Reply cannot be found.')
+                      }
                     done()
                   })
                 }).catch(function(err){

@@ -11,7 +11,7 @@ var {ObjectId} = require('mongodb')
 
 
 var log=function(msg){
-  console.log(msg)
+ // console.log(msg)
 }
 
 
@@ -104,10 +104,11 @@ exports.gett=function(req,res){
         dbo.collection(collThread).insert(newThread)
         .then(function() {             
           var path = getBoardPath(board)
+          db.close()
           res.redirect(path)
-          
+  
         })
-        db.close()
+        
       }).catch(function(err){console.log(err)})
     }
     
@@ -128,12 +129,13 @@ exports.gett=function(req,res){
         if (thread) {
           thread.reported=true        
           dbo.collection(collThread).update({_id:thread._id},thread)
-            .then(function() {             
-            res.send('success')
+            .then(function() {
+              db.close()             
+              res.send('success')
           })
         }
       })
-      db.close()
+      
     }).catch(function (err) {console.log(err)})      
     }
     
@@ -161,9 +163,10 @@ exports.gett=function(req,res){
           } else {
             res.send('incorrect password')
           }
+          db.close()
         })
       
-        db.close()
+        
       }).catch(function (err) {console.log(err)})      
    }
     
@@ -191,11 +194,11 @@ exports.gett=function(req,res){
           })
           .then(function() {
             log('sending threads')
+            db.close()
             res.setHeader('Content-Type', 'application/json')
             res.send(myThread)
           })
         
-          db.close()
         }).catch(function(err) {
         log(err)
       })
@@ -225,10 +228,10 @@ exports.gett=function(req,res){
         .then(function(reply){
         myThread.bumped_on=reply.created_on
         dbo.collection(collThread).update({_id:myThread._id},myThread)
-        .then(function() {             
+        .then(function() {  
+          db.close()           
           res.redirect(getThreadPath(board,thread_id))
       })})})
-      db.close()
       }).catch(function (err) {
         console.log(err)
         res.send('Error creating reply: '+err)
@@ -247,7 +250,9 @@ exports.gett=function(req,res){
           if (reply) {
             reply.reported=true
             dbo.collection(collReply).update({_id:reply._id},reply)
-              .then(function() {             
+              .then(function() {     
+            db.close()
+        
             res.send('success')
             })
           } else {
@@ -258,7 +263,6 @@ exports.gett=function(req,res){
           console.log(err)
           res.send('failure')
         })  
-      db.close()
       }).catch(function (err) {console.log(err)})      
     }
     
@@ -285,8 +289,9 @@ exports.gett=function(req,res){
           } else {
             res.send('incorrect password')
           }
+          db.close()
         })
-        db.close()
+
 
       }).catch(function (err) {console.log(err)})      
     }
