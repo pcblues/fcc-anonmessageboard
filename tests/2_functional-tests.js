@@ -262,7 +262,7 @@ function getLatestReplyID(replyText) {
               assert.isUndefined(threads[0].delete_password,'delete_password should not be defined')
               // check 11th thread not in res TG11
               var found11th=false
-              for (var c=0; c<numThreads;c++) {
+              for (var c=0; c<threads.length;c++) {
                 if (threads[c].text=='TG11') {
                   found11th=true
                 }
@@ -271,7 +271,7 @@ function getLatestReplyID(replyText) {
     
             // check 4th reply not in 1st thread R4
             var found4th=false
-            for (var c=0;c<numReplies;c++) {
+            for (var c=0;c<threads[0].replies.length;c++) {
               if (threads[0].replies[c].text=='R4') {
                 found4th=true
               }
@@ -381,8 +381,8 @@ function getLatestReplyID(replyText) {
                 .get(reqText)
                 .end(function(err,res) {
                   if (err) {doLog(err)}
-                  var threads = res.body
-                  var thread = threads[0]
+                  
+                  var thread = res.body
                   var reply = thread.replies[0]
                   assert.equal(thread.bumped_on ,reply.created_on,'Thread bumped_on should equal Reply.created_on')
                   done()
