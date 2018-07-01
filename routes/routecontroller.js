@@ -11,7 +11,7 @@ var {ObjectId} = require('mongodb')
 
 
 var log=function(msg){
- // console.log(msg)
+  console.log(msg)
 }
 
 
@@ -118,25 +118,40 @@ exports.gett=function(req,res){
     
     exports.putt=function (req, res){
       // report thread
-      log('putt')
+      var board = req.params.board
+      log('putt: '+board)
       
       var thread_id = req.body.thread_id
       var dbo
-      mongo.connect(url).then(function(db) {
+      mongo.connect(url)
+      .then(function(db) {
         dbo=db.db(dbName)
-        return db.collection(collThread).findOne({_id:ObjectId(thread_id)})
-      .then(function(thread){
-        if (thread) {
-          thread.reported=true        
-          dbo.collection(collThread).update({_id:thread._id},thread)
-            .then(function() {
-              db.close()             
-              res.send('success')
+        db.collection(collThread).findOne({_id:ObjectId(thread_id)})
+       .then(function(thread){
+          if (thread) {
+            dbo.collection(collThread).update({_id:thread._id}, { $set : { reported:true }},
+              function(err,result) {
+                if (err) {
+                  res.send('failure: '+err)
+                } else {
+                  res.send('success')              
+                }
+                db.close()  
+            
           })
+        } else {
+          res.send('failure: no thread')
+          
         }
-      })
+      },
+    function(err){
+      res.send('failure: '+err)
+    })
       
-    }).catch(function (err) {console.log(err)})      
+                 
+      }).catch(function (err) {
+      console.log(err)
+    })      
     }
     
     exports.deletet=function (req, res){
@@ -225,8 +240,8 @@ exports.gett=function(req,res){
         newReply.text = req.body.text
         newReply.delete_password = req.body.delete_password
         dbo.collection(collReply).insert(newReply)
-        .then(function(reply){
-        myThread.bumped_on=reply.created_on
+        .then(function(count){
+        myThread.bumped_on=newReply.created_on
         dbo.collection(collThread).update({_id:myThread._id},myThread)
         .then(function() {  
           db.close()           
