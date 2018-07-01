@@ -126,7 +126,7 @@ exports.gett=function(req,res){
       mongo.connect(url)
       .then(function(db) {
         dbo=db.db(dbName)
-        db.collection(collThread).findOne({_id:ObjectId(thread_id)})
+        dbo.collection(collThread).findOne({_id:ObjectId(thread_id)})
        .then(function(thread){
           if (thread) {
             dbo.collection(collThread).update({_id:thread._id}, { $set : { reported:true }},
