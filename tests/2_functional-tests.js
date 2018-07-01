@@ -260,23 +260,23 @@ function getLatestReplyID(replyText) {
 
               assert.isUndefined(threads[0].reported ,'reported should not be defined')
               assert.isUndefined(threads[0].delete_password,'delete_password should not be defined')
-              // check 11th thread not in res TG11
-              var found11th=false
+              // check 1st thread not in res TG1
+              var found1st=false
               for (var c=0; c<threads.length;c++) {
-                if (threads[c].text=='TG11') {
-                  found11th=true
+                if (threads[c].text=='TG1') {
+                  found1st=true
                 }
               }
-            assert.isFalse(found11th,'11th thread should not be returned')
+            assert.isFalse(found1st,'1st thread should not be returned')
     
-            // check 4th reply not in 1st thread R4
-            var found4th=false
+            // check 1st reply not in 1st thread R1
+            found1st=false
             for (var c=0;c<threads[0].replies.length;c++) {
-              if (threads[0].replies[c].text=='R4') {
-                found4th=true
+              if (threads[0].replies[c].text=='R1') {
+                found4st=true
               }
             }
-            assert.isFalse(found4th,'4th reply should not be in replies')
+            assert.isFalse(found1st,'1st reply should not be in replies')
             resolve()}
           })
         })
