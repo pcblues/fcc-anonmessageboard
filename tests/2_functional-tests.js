@@ -190,8 +190,6 @@ function getLatestReplyID(replyText) {
       })
 
     return prom
-   
-    
     }
 
     function getThread(boardName,threadID) {
@@ -273,7 +271,7 @@ function getLatestReplyID(replyText) {
             found1st=false
             for (var c=0;c<threads[0].replies.length;c++) {
               if (threads[0].replies[c].text=='R1') {
-                found4st=true
+                found1st=true
               }
             }
             assert.isFalse(found1st,'1st reply should not be in replies')

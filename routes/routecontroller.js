@@ -49,7 +49,7 @@ exports.gett=function(req,res){
       log('db')
       dbo=db.db(dbName)
       return dbo.collection(collThread).find( {board:board},
-        {fields:{reported:false,delete_password:false}}).sort({bumped : 1}).limit(10).toArray()
+        {fields:{reported:false,delete_password:false}}).sort({bumped_on : -1}).limit(10).toArray()
       })
       .then(function(threads){
         
@@ -58,7 +58,7 @@ exports.gett=function(req,res){
           return new Promise(function(resolve){
             dbo.collection(collReply)
              .find( {board:board,thread_id:ObjectId(thread._id)},
-            {fields:{reported:false,delete_password:false}} ).sort({create_on:1}).toArray()
+            {fields:{reported:false,delete_password:false}} ).sort({create_on:-1}).toArray()
             .then(function(allReplies){
               thread.replycount = allReplies.length 
               thread.replies=allReplies.slice(0,3)
